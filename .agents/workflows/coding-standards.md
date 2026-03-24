@@ -1,3 +1,7 @@
+---
+description: 
+---
+
 📜 Padrões de Desenvolvimento e Workflow
 ⚠️ LEIA ANTES DE QUALQUER ALTERAÇÃO
 Este documento define a arquitetura e as expectativas de qualidade para este projeto. O descumprimento destas regras pode gerar dívida técnica ou instabilidade.

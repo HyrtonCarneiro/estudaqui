@@ -1,16 +1,78 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rotinize | Hub San Paolo</title>
+    
+    <!-- Tailwind CSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fdf4f1',
+                            100: '#fbe9e2',
+                            200: '#f8d2c6',
+                            300: '#f5bba9',
+                            400: '#ef8d6f',
+                            500: '#e95f35',
+                            600: '#da5513',
+                            700: '#b64710',
+                            800: '#91390d',
+                            900: '#772e0a',
+                        },
+                        secondary: {
+                            50: '#f4f4f5',
+                            100: '#e4e4e7',
+                            200: '#d4d4d8',
+                            300: '#a1a1aa',
+                            400: '#71717a',
+                            500: '#52525b',
+                            600: '#3f3f46',
+                            700: '#27272a',
+                            800: '#18181b',
+                            900: '#09090b',
+                        },
+                        background: '#fcfcfc',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body class="bg-background text-secondary-900 font-sans antialiased">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .active-nav {
+            background-color: #fdf4f1;
+            color: #da5513;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-background text-secondary-900 antialiased">
+    <div id="root" class="flex h-screen w-full overflow-hidden">
+        <!-- App Shell will be rendered here via main.js -->
+    </div>
+
+    <!-- Firebase App & Store (Global via CDN or ESM) -->
+    <!-- We will use ESM for main.js to keep things clean -->
+    <script type="module" src="js/main.js"></script>
+</body>
 </html>
