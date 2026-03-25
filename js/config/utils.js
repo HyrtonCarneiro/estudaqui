@@ -36,18 +36,21 @@ window.utils = {
         return new Date(date.setDate(diff)).toISOString().split('T')[0];
     },
 
-    calculateCountdown: function(targetDateStr) {
+    calculateCountdown: function(targetDate) {
+        if (!targetDate) return "";
+        const target = new Date(targetDate);
+        if (isNaN(target.getTime())) return "";
+        
         const now = new Date();
-        const target = new Date(targetDateStr);
         const diff = target - now;
-
-        if (diff <= 0) return "Encerrado";
-
+        
+        if (diff <= 0) return "Prova Realizada";
+        
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-        return days + "d " + hours + "h " + minutes + "m";
+        
+        if (days > 0) return `${days}d ${hours}h`;
+        return `${hours}h restantes`;
     },
     
     formatDateBR: function(dateString) {

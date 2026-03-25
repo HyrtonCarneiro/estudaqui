@@ -135,14 +135,88 @@
 
             <!-- Editais Page -->
             <section id="page-editais" class="page-section hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Acompanhamento de Editais</h2>
-                    <button id="btn-novo-edital" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition-all flex items-center gap-2">
-                        <i class="ph ph-plus-circle"></i> Novo Edital
-                    </button>
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Meus Editais</h2>
+                        <p class="text-sm text-gray-500">Acompanhe prazos e datas importantes de concursos.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="relative">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="input-search-editais" placeholder="Filtrar editais..." class="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none w-64 transition-all">
+                        </div>
+                        <button id="btn-novo-edital" class="bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                            <i class="ph ph-plus-circle"></i> Novo Edital
+                        </button>
+                    </div>
                 </div>
-                <div id="container-editais" class="flex flex-col gap-4">
-                    <!-- Editais dinâmicos injetados via JS -->
+                
+                <div id="container-editais" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Cards dinâmicos -->
+                </div>
+
+                <!-- Modal Edital -->
+                <div id="modal-edital" class="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+                    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden scale-95 opacity-0 transition-all duration-200" id="modal-edital-content">
+                        <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 id="edital-modal-title" class="text-lg font-bold text-gray-800">Novo Edital</h3>
+                            <button onclick="window.editaisController.fecharModal()" class="text-gray-400 hover:text-gray-600 font-bold"><i class="ph ph-x text-xl"></i></button>
+                        </div>
+                        <form id="form-edital" class="p-8 space-y-6">
+                            <input type="hidden" id="input-edital-id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Órgão / Concurso</label>
+                                    <input type="text" id="input-edital-nome" required class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Ex: Receita Federal">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Banca</label>
+                                    <input type="text" id="input-edital-banca" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Ex: FGV, FCC...">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Status</label>
+                                    <select id="select-edital-status" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                                        <option value="Ativo">Inscrições Abertas</option>
+                                        <option value="Previsto">Previsto / Autorizado</option>
+                                        <option value="Encerrado">Inscrições Encerradas</option>
+                                        <option value="Finalizado">Prova Realizada</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Data da Prova</label>
+                                    <input type="date" id="input-edital-data" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                                    <label class="flex items-center gap-2 mt-2 cursor-pointer">
+                                        <input type="checkbox" id="check-edital-data-indefinida" class="rounded text-primary-500" onchange="document.getElementById('input-edital-data').disabled = this.checked">
+                                        <span class="text-xs text-gray-500">A definir</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Fim das Inscrições</label>
+                                    <input type="date" id="input-edital-inscricao" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                                    <label class="flex items-center gap-2 mt-2 cursor-pointer">
+                                        <input type="checkbox" id="check-edital-insc-indefinida" class="rounded text-primary-500" onchange="document.getElementById('input-edital-inscricao').disabled = this.checked">
+                                        <span class="text-xs text-gray-500">A definir</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Salário (R$)</label>
+                                    <input type="text" id="input-edital-salario" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Ex: 15.000,00">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Vagas</label>
+                                    <input type="number" id="input-edital-vagas" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Ex: 100">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Link do Edital</label>
+                                    <input type="url" id="input-edital-link" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="pt-4 flex gap-3">
+                                <button type="button" onclick="window.editaisController.fecharModal()" class="flex-1 py-3 border border-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-50 transition-all">Cancelar</button>
+                                <button type="submit" class="flex-[2] py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl shadow-lg shadow-primary-200 transition-all">Salvar Edital</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </section>
 

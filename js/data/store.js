@@ -136,13 +136,25 @@ window.store = {
         return this.state.materiais.find(m => m.conteudoId === conteudoId) || { conteudoId, links: [], notas: "" };
     },
 
-    addEdital: function(nome, dataProva) {
-        if (!nome || !dataProva) throw new Error("Nome e data da prova são obrigatórios");
+    addEdital: function(editalData) {
+        if (!editalData.nome) throw new Error("Nome do concurso é obrigatório");
         const id = 'ed_' + Date.now();
-        const edital = { id, nome, status: 'Ativo', dataProva };
+        const edital = { 
+            id, 
+            status: 'Ativo', 
+            ...editalData 
+        };
         this.state.editais.push(edital);
         this.save();
         return edital;
+    },
+
+    updateEdital: function(id, data) {
+        const index = this.state.editais.findIndex(e => e.id === id);
+        if (index !== -1) {
+            this.state.editais[index] = { ...this.state.editais[index], ...data };
+            this.save();
+        }
     },
 
     removeEdital: function(id) {
