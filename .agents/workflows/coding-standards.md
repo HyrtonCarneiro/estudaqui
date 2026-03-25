@@ -66,6 +66,8 @@ Dados Explícitos: Evite esconder informações cruciais sob interações (como 
 
 Feedback Visual: Toda ação (clique/envio) deve ter uma resposta visual (loader, transição ou toast).
 
+Mensagens de Erro Detalhadas: Notificações de erro (toasts) devem OBRIGATORIAMENTE exibir o `e.message` técnico para que o motivo da falha fique claro ao usuário e auxilie no suporte.
+
 Interface Limpa: Use modais ou seções expansíveis para evitar sobrecarga de informações em uma única tela.
 
 Acessibilidade de Dados: Listagens com muitos itens devem obrigatoriamente incluir filtros ou campo de busca.

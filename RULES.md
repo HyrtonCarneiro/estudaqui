@@ -67,3 +67,8 @@ O agente **pode** propor desvios quando uma regra prejudica legibilidade, coesã
 
 - **Git:** Do NOT perform `git commit` or `git push` automatically. Always wait for explicit user instruction.
 - **Verification:** Perform tests and verification internally. Do NOT attach screenshots or recordings to the `walkthrough.md` unless explicitly requested by the user.
+
+## 🔴 Errors & Debugging
+
+- **Detailed Error Messages**: All error notifications (`showToast` with type 'error') MUST include the specific technical error message (e.g., `e.message`) to facilitate debugging and provide clarity on the cause of failure.
+    - *Example*: `showToast("Erro ao salvar: " + e.message, "error")`
