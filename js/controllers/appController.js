@@ -25,7 +25,7 @@ window.appControllers = {
                 
                 try {
                     if (window.authLogic.login(user, pass)) {
-                        window.store.getState().isAuthenticated = true;
+                        window.store.setAuth(true);
                         window.utils.showToast("Login realizado com sucesso!", "success");
                         this.checkAuth();
                     }
@@ -38,7 +38,7 @@ window.appControllers = {
         const btnLogout = document.getElementById('btn-logout');
         if (btnLogout) {
             btnLogout.addEventListener('click', () => {
-                window.store.getState().isAuthenticated = false;
+                window.store.setAuth(false);
                 document.getElementById('input-password').value = '';
                 this.checkAuth();
                 window.utils.showToast("Você saiu da conta.", "info");

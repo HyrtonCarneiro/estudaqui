@@ -22,18 +22,25 @@ window.store = {
         return this.state;
     },
 
+    setAuth: function(val) {
+        this.state.isAuthenticated = val;
+        this.save();
+    },
+
     addMateria: function(nome) {
         if (!nome) throw new Error("Nome da matéria é obrigatório");
         const id = 'm' + Date.now();
         this.state.materias.push({ id, nome });
-        return { id, nome };
+        this.save();
+        return id;
     },
 
     addConteudo: function(materiaId, nome) {
-        if (!materiaId || !nome) throw new Error("Matéria e nome do conteúdo são obrigatórios");
+        if (!materiaId || !nome) throw new Error("Matéria e conteúdo são obrigatórios");
         const id = 'c' + Date.now();
         this.state.conteudos.push({ id, materiaId, nome });
-        return { id, materiaId, nome };
+        this.save();
+        return id;
     },
 
     getConteudosPorMateria: function(materiaId) {
@@ -94,12 +101,15 @@ window.store = {
             this.state.estatisticas.streak = 1;
         }
         this.state.estatisticas.ultimaDataEstudo = hoje;
+        this.save();
     },
 
     addSimulado: function(nome, nota) {
+        if (!nome || isNaN(nota)) throw new Error("Nome e nota válidos são obrigatórios");
         const id = 'sim_' + Date.now();
         const simulado = { id, nome, nota: parseFloat(nota), data: new Date().toISOString() };
         this.state.simulados.push(simulado);
+        this.save();
         return simulado;
     },
 
@@ -112,6 +122,7 @@ window.store = {
             material = { conteudoId, links, notas };
             this.state.materiais.push(material);
         }
+        this.save();
         return material;
     },
 
@@ -124,10 +135,37 @@ window.store = {
         const id = 'ed_' + Date.now();
         const edital = { id, nome, status: 'Ativo', dataProva };
         this.state.editais.push(edital);
+        this.save();
         return edital;
     },
 
     removeEdital: function(id) {
         this.state.editais = this.state.editais.filter(e => e.id !== id);
+        this.save();
+    },
+
+    // --- Persistence ---
+    save: function() {
+        try {
+            localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
+        } catch (e) {
+            console.error("Erro ao salvar no LocalStorage", e);
+        }
+    },
+
+    load: function() {
+        try {
+            const saved = localStorage.getItem('concursos_ti_state');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Merge with default state to avoid missing properties on updates
+                this.state = { ...this.state, ...parsed };
+            }
+        } catch (e) {
+            console.error("Erro ao carregar do LocalStorage", e);
+        }
     }
 };
+
+// Auto-load on script execution
+window.store.load();
