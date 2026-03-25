@@ -2,15 +2,11 @@
 window.store = {
     state: {
         isAuthenticated: false,
-        materias: [
-            { id: 'm1', nome: 'Banco de Dados' },
-            { id: 'm2', nome: 'Redes de Computadores' }
-        ],
-        conteudos: [
-            { id: 'c1', materiaId: 'm1', nome: 'Modelagem ER' },
-            { id: 'c2', materiaId: 'm1', nome: 'SQL Básico' }
-        ],
+        materias: [],
+        conteudos: [],
         cronograma: [], // { id, semana, materiaId, conteudoId, paginas, concluido, dataConclusao }
+        editais: [],    // { id, nome, status, dataProva }
+        revisoes: [],   // { id, conteudoId, dataRevisao, status }
         revisoes: [],   // { id, conteudoId, dataRevisao, status }
         simulados: [],  // { id, nome, nota, data }
         materiais: [],  // { conteudoId, links: [], notas: "" }
@@ -121,5 +117,17 @@ window.store = {
 
     getMaterial: function(conteudoId) {
         return this.state.materiais.find(m => m.conteudoId === conteudoId) || { conteudoId, links: [], notas: "" };
+    },
+
+    addEdital: function(nome, dataProva) {
+        if (!nome || !dataProva) throw new Error("Nome e data da prova são obrigatórios");
+        const id = 'ed_' + Date.now();
+        const edital = { id, nome, status: 'Ativo', dataProva };
+        this.state.editais.push(edital);
+        return edital;
+    },
+
+    removeEdital: function(id) {
+        this.state.editais = this.state.editais.filter(e => e.id !== id);
     }
 };

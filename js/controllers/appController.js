@@ -79,6 +79,9 @@ window.appControllers = {
         if (pageId === 'dashboard') {
             this.updateDashboard();
         }
+        if (pageId === 'editais') {
+            if (window.editaisController) window.editaisController.render();
+        }
         if (pageId === 'cadastros') {
             if (window.cadastrosController) window.cadastrosController.renderMateriasSelect();
         }
