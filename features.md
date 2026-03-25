@@ -1,4 +1,4 @@
-# Estudos TI - Features Specification
+# ConcursosTI - Features Specification
 
 ## 1. Visão Geral
 WebApp para organizar cronogramas de estudos para TI e outros assuntos, hospedado na Vercel e utilizando Firebase como backend/banco de dados.
