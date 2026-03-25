@@ -23,33 +23,25 @@ window.appControllers = {
                 const user = document.getElementById('input-username').value;
                 const pass = document.getElementById('input-password').value;
                 
-                const btn = formLogin.querySelector('button[type="submit"]');
-                const originalText = btn.textContent;
-                
                 try {
-                    btn.disabled = true;
-                    btn.textContent = "Autenticando...";
-                    
-                    await window.authLogic.login(user, pass);
-                    // store.setAuth will be called by onAuthStateChanged in store.js
-                    window.utils.showToast("Login realizado com sucesso!", "success");
+                    if (window.authLogic.login(user, pass)) {
+                        window.store.setAuth(true);
+                        await window.store.load(); // Load from cloud
+                        window.utils.showToast("Login realizado! Sincronizando com a nuvem...", "success");
+                        this.checkAuth();
+                    }
                 } catch (err) {
-                    window.utils.showToast("Erro no login: " + err.message, "error");
-                    btn.disabled = false;
-                    btn.textContent = originalText;
+                    window.utils.showToast("Erro: " + err.message, "error");
                 }
             });
         }
 
         const btnLogout = document.getElementById('btn-logout');
         if (btnLogout) {
-            btnLogout.addEventListener('click', async () => {
-                try {
-                    await window.authLogic.logout();
-                    window.utils.showToast("Você saiu da conta.", "info");
-                } catch (err) {
-                    window.utils.showToast("Erro ao sair: " + err.message, "error");
-                }
+            btnLogout.addEventListener('click', () => {
+                window.store.setAuth(false);
+                this.checkAuth();
+                window.utils.showToast("Você saiu da conta.", "info");
             });
         }
     },

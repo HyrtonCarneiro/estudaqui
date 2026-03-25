@@ -162,59 +162,51 @@ window.store = {
         this.save();
     },
 
-    // --- Persistence (Firestore) ---
-    save: function() {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            // Fallback to localstorage if not logged in yet
-            localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
-            return;
-        }
+    setAuth: function(val) {
+        this.state.isAuthenticated = val;
+        this.save();
+    },
 
-        const db = firebase.firestore();
-        db.collection('users').doc(user.uid).set({
+    // --- Persistence (Firestore Cloud) ---
+    save: function() {
+        // Always save to both local and cloud for resilience
+        try {
+            localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
+        } catch(e) {}
+
+        if (!window.db) return; // Firebase not initialized
+
+        window.db.collection('users').doc('hyrton').set({
             state: this.state,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(err => console.error("Erro ao salvar no Firestore:", err));
+        }).catch(err => console.error("Erro cloud save:", err));
     },
 
     load: async function() {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            // Try localstorage fallback
-            const saved = localStorage.getItem('concursos_ti_state');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                this.state = { ...this.state, ...parsed };
-            }
-            return;
+        // 1. Try local first for speed
+        const saved = localStorage.getItem('concursos_ti_state');
+        if (saved) {
+            this.state = { ...this.state, ...JSON.parse(saved) };
         }
 
-        const db = firebase.firestore();
-        try {
-            const doc = await db.collection('users').doc(user.uid).get();
-            if (doc.exists) {
-                const data = doc.data();
-                if (data.state) {
-                    this.state = { ...this.state, ...data.state };
+        // 2. Sync with cloud
+        if (window.db) {
+            try {
+                const doc = await window.db.collection('users').doc('hyrton').get();
+                if (doc.exists) {
+                    const cloudData = doc.data().state;
+                    this.state = { ...this.state, ...cloudData };
+                    localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
                 }
+            } catch (err) {
+                console.error("Erro cloud load:", err);
             }
-        } catch (err) {
-            console.error("Erro ao carregar do Firestore:", err);
         }
     },
 
     init: function() {
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                this.state.isAuthenticated = true;
-                await this.load();
-                console.log("Dados carregados do Firebase para:", user.email);
-            } else {
-                this.state.isAuthenticated = false;
-            }
-            
-            // Re-render everything once auth/data is ready
+        // Initial load
+        this.load().then(() => {
             if (window.appControllers) {
                 window.appControllers.checkAuth();
                 window.appControllers.updateDashboard();
@@ -223,5 +215,5 @@ window.store = {
     }
 };
 
-// Initialized via main.js or index.html
+// Start store
 window.store.init();
