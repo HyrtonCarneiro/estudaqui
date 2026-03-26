@@ -409,7 +409,26 @@ window.store = {
                 this.state = { ...this.state, ...cloudData, isAuthenticated: true, hasLoadedFromCloud: true };
                 console.log("Sync: Cloud data received. Materias:", (cloudData.materias || []).length);
             } else {
-                console.log("Sync: Document not found or empty.");
+                console.warn(`Sync: Document [${this.state.currentUser}] not found or empty. Checking for legacy casing...`);
+                
+                // --- EMERGENCY RECOVERY BRIDGE ---
+                // If we are looking for 'Hyrton' but it's empty, check 'hyrton' once
+                if (this.state.currentUser === 'Hyrton') {
+                    window.db.collection('users').doc('hyrton').get().then(legacyDoc => {
+                        if (legacyDoc.exists && legacyDoc.data().state) {
+                            console.log("RECOVERY: Found legacy data in 'hyrton'! Migrating to 'Hyrton'...");
+                            const legacyData = legacyDoc.data().state;
+                            this.state = { ...this.state, ...legacyData, isAuthenticated: true, hasLoadedFromCloud: true };
+                            this.save(); // This will write it to 'Hyrton'
+                            window.utils.showToast("Dados recuperados com sucesso!", "success");
+                        } else {
+                            console.log("RECOVERY: No legacy data found in 'hyrton' either.");
+                            this.state.hasLoadedFromCloud = true; // Allow updates even if empty
+                        }
+                    }).catch(err => console.error("RECOVERY: Error checking legacy doc", err));
+                } else {
+                    this.state.hasLoadedFromCloud = true;
+                }
             }
             this.hideLoading();
             this.triggerUIRefresh();
