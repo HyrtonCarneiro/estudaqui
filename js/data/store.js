@@ -102,6 +102,17 @@ window.store = {
         this.save();
     },
 
+    updateCronogramaItem: function(id, data) {
+        const index = this.state.cronograma.findIndex(i => i.id === id);
+        if (index !== -1) {
+            this.state.cronograma[index] = { ...this.state.cronograma[index], ...data };
+            if (data.semana) {
+                this.state.cronograma.sort((a,b) => a.semana.localeCompare(b.semana));
+            }
+            this.save();
+        }
+    },
+
     concluirItemCronograma: function(id) {
         const item = this.state.cronograma.find(i => i.id === id);
         if (!item) throw new Error("Item não encontrado");

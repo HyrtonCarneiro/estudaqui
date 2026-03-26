@@ -15,6 +15,15 @@ window.cronogramaController = {
         this.selectMateriaModal = document.getElementById('select-cronograma-materia');
         this.containerCheckboxes = document.getElementById('container-conteudos-checkboxes');
         this.inputSemana = document.getElementById('input-cronograma-semana');
+
+        // Edit Mode specific elements
+        this.inputId = document.getElementById('input-cronograma-id');
+        this.editInfoArea = document.getElementById('edit-cronograma-info');
+        this.editLabel = document.getElementById('edit-cronograma-label');
+        this.editPagesArea = document.getElementById('edit-cronograma-pages-area');
+        this.editInputPaginas = document.getElementById('input-cronograma-edit-paginas');
+        this.addSelectionArea = document.getElementById('add-cronograma-selection-area');
+        this.modalTitle = document.querySelector('#modal-cronograma h3');
     },
 
     bindEvents: function() {
@@ -45,18 +54,43 @@ window.cronogramaController = {
         }
     },
 
-    openModal: function() {
+    openModal: function(item = null) {
         this.modal.classList.remove('hidden');
         this.modal.classList.add('flex');
         
-        // Populate Materias
-        this.selectMateriaModal.innerHTML = '<option value="" disabled selected>Selecione uma matéria</option>';
-        window.store.getState().materias.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = m.nome;
-            this.selectMateriaModal.appendChild(opt);
-        });
+        if (item) {
+            // EDIT MODE
+            this.modalTitle.innerHTML = '<i class="ph ph-pencil-simple text-primary-600"></i> Editar Estudo';
+            this.inputId.value = item.id;
+            this.inputSemana.value = item.semana;
+            this.editInputPaginas.value = item.paginas;
+            
+            const materia = window.store.getState().materias.find(m => m.id === item.materiaId);
+            const conteudo = window.store.getState().conteudos.find(c => c.id === item.conteudoId);
+            this.editLabel.textContent = `${materia ? materia.nome : '?'}: ${conteudo ? conteudo.nome : '?'}`;
+            
+            this.editInfoArea.classList.remove('hidden');
+            this.editPagesArea.classList.remove('hidden');
+            this.addSelectionArea.classList.add('hidden');
+        } else {
+            // ADD MODE
+            this.modalTitle.innerHTML = '<i class="ph ph-calendar-plus text-primary-600"></i> Adicionar ao Cronograma';
+            this.inputId.value = "";
+            this.formItem.reset();
+            
+            this.editInfoArea.classList.add('hidden');
+            this.editPagesArea.classList.add('hidden');
+            this.addSelectionArea.classList.remove('hidden');
+
+            // Populate Materias
+            this.selectMateriaModal.innerHTML = '<option value="" disabled selected>Selecione uma matéria</option>';
+            window.store.getState().materias.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.nome;
+                this.selectMateriaModal.appendChild(opt);
+            });
+        }
 
         requestAnimationFrame(() => {
             this.modalContent.classList.remove('scale-95', 'opacity-0');
@@ -106,29 +140,44 @@ window.cronogramaController = {
         if (e) e.preventDefault();
         
         const dateInput = this.inputSemana.value;
-        const materiaId = this.selectMateriaModal.value;
-        const checkboxes = this.containerCheckboxes.querySelectorAll('input[name="conteudoCheckbox"]:checked');
-        const conteudosList = Array.from(checkboxes).map(cb => cb.value);
+        const id = this.inputId.value;
 
-        if (!dateInput || !materiaId || conteudosList.length === 0) {
-            window.utils.showToast("Preencha todos os campos obrigatórios", "error");
+        if (!dateInput) {
+            window.utils.showToast("Selecione a semana", "error");
             return;
         }
 
         try {
             const semana = window.utils.getWeekMonday(dateInput);
-            window.cronogramaLogic.validateItem(semana, materiaId, conteudosList);
-            
-            // Salvar para cada conteudo selecionado
-            checkboxes.forEach(cb => {
-                const conteudoId = cb.value;
-                const overrideInput = this.containerCheckboxes.querySelector(`input[name="paginasOverride_${conteudoId}"]`);
-                const paginasOverride = overrideInput && overrideInput.value ? Number(overrideInput.value) : null;
+
+            if (id) {
+                // UPDATE ITEM
+                const paginas = Number(this.editInputPaginas.value) || 0;
+                window.store.updateCronogramaItem(id, { semana, paginas });
+                window.utils.showToast("Estudo atualizado", "success");
+            } else {
+                // CREATE NEW ITEM(S)
+                const materiaId = this.selectMateriaModal.value;
+                const checkboxes = this.containerCheckboxes.querySelectorAll('input[name="conteudoCheckbox"]:checked');
+                const conteudosList = Array.from(checkboxes).map(cb => cb.value);
+
+                if (!materiaId || conteudosList.length === 0) {
+                    window.utils.showToast("Selecione a matéria e os conteúdos", "error");
+                    return;
+                }
+
+                window.cronogramaLogic.validateItem(semana, materiaId, conteudosList);
                 
-                window.store.addCronogramaItem(semana, materiaId, conteudoId, paginasOverride);
-            });
+                checkboxes.forEach(cb => {
+                    const conteudoId = cb.value;
+                    const overrideInput = this.containerCheckboxes.querySelector(`input[name="paginasOverride_${conteudoId}"]`);
+                    const paginasOverride = overrideInput && overrideInput.value ? Number(overrideInput.value) : null;
+                    
+                    window.store.addCronogramaItem(semana, materiaId, conteudoId, paginasOverride);
+                });
+                window.utils.showToast("Estudo(s) adicionado(s)", "success");
+            }
             
-            window.utils.showToast("Estudo(s) adicionado(s) com sucesso", "success");
             this.closeModal();
             this.renderTable();
         } catch(e) {
@@ -209,8 +258,8 @@ window.cronogramaController = {
                 </td>
                 <td class="px-8 py-5 text-right">
                     <div class="flex justify-end gap-2 relative z-10">
-                        <button onclick="window.cronogramaController.startFocus('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95" title="Iniciar Pomodoro">
-                            <i class="ph ph-timer font-bold"></i> <span class="text-[9px] font-black uppercase">Focar</span>
+                        <button onclick="window.cronogramaController.editar('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95" title="Editar Estudo">
+                            <i class="ph ph-pencil-simple font-bold"></i> <span class="text-[9px] font-black uppercase">Editar</span>
                         </button>
                         <button onclick="window.cronogramaController.removerItem('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95" title="Remover">
                             <i class="ph ph-trash font-bold"></i> <span class="text-[9px] font-black uppercase">Excluir</span>
@@ -239,13 +288,10 @@ window.cronogramaController = {
         }
     },
 
-    startFocus: function(id) {
+    editar: function(id) {
         const item = window.store.getState().cronograma.find(i => i.id === id);
-        const materia = window.store.getState().materias.find(m => m.id === item.materiaId);
-        const conteudo = window.store.getState().conteudos.find(c => c.id === item.conteudoId);
-        
-        if (window.pomodoroController) {
-            window.pomodoroController.openWithContext(materia.nome + ": " + conteudo.nome);
+        if (item) {
+            this.openModal(item);
         }
     },
 
