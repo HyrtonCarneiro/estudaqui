@@ -23,24 +23,33 @@ window.appControllers = {
                 const user = document.getElementById('input-username').value;
                 const pass = document.getElementById('input-password').value;
                 
+                const btn = formLogin.querySelector('button[type="submit"]');
+                const originalText = btn.textContent;
+
                 try {
-                    if (window.authLogic.login(user, pass)) {
-                        window.store.setAuth(true);
-                        window.utils.showToast("Login realizado! Sincronizando com a nuvem...", "success");
-                        this.checkAuth();
-                    }
+                    btn.disabled = true;
+                    btn.textContent = "Entrando...";
+                    
+                    // Firebase will handle the session and trigger onAuthStateChanged in store.js
+                    await window.authLogic.login(user, pass);
+                    window.utils.showToast("Login realizado com sucesso!", "success");
                 } catch (err) {
-                    window.utils.showToast("Erro: " + err.message, "error");
+                    window.utils.showToast("Erro no login: " + err.message, "error");
+                    btn.disabled = false;
+                    btn.textContent = originalText;
                 }
             });
         }
 
         const btnLogout = document.getElementById('btn-logout');
         if (btnLogout) {
-            btnLogout.addEventListener('click', () => {
-                window.store.setAuth(false);
-                this.checkAuth();
-                window.utils.showToast("Você saiu da conta.", "info");
+            btnLogout.addEventListener('click', async () => {
+                try {
+                    await window.authLogic.logout();
+                    window.utils.showToast("Você saiu da conta.", "info");
+                } catch (err) {
+                    window.utils.showToast("Erro ao sair: " + err.message, "error");
+                }
             });
         }
     },

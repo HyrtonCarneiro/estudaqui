@@ -162,90 +162,47 @@ window.store = {
         this.save();
     },
 
-    isCloudLoaded: false,
-    lastCloudData: null,
-
-    // --- Persistence (Firestore Cloud) ---
+    // --- Persistence (Pure Firebase) ---
     save: function() {
-        // ALWAYS save to local first for immediate feedback and session persistence
-        try {
-            localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
-        } catch(e) {}
+        const user = firebase.auth().currentUser;
+        if (!user || !window.db) return;
 
-        if (!window.db) return;
-        
-        // Block cloud save only if we haven't confirmed the remote state yet
-        // to avoid wiping out existing cloud data with a "fresh" local state.
-        if (!this.isCloudLoaded && this.state.isAuthenticated) {
-            console.log("Cloud save deferred until sync complete.");
-            return;
-        }
-
-        window.db.collection('users').doc('hyrton').set({
+        window.db.collection('users').doc(user.uid).set({
             state: this.state,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(err => console.error("Erro cloud save:", err));
-    },
-
-    setAuth: function(val) {
-        const wasAuthenticated = this.state.isAuthenticated;
-        this.state.isAuthenticated = val;
-        
-        // If logging in, merge any cloud data we already received
-        if (val && !wasAuthenticated && this.lastCloudData) {
-            console.log("Merging pre-loaded cloud data upon login...");
-            this.state = { ...this.state, ...this.lastCloudData };
-        }
-        
-        this.save();
+        }).catch(err => console.error("Firestore Save Error:", err));
     },
 
     init: function() {
-        // 1. Quick local load
-        const saved = localStorage.getItem('concursos_ti_state');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                this.state = { ...this.state, ...parsed };
-                console.log("Local state loaded:", this.state.isAuthenticated ? "Authenticated" : "Guest");
-            } catch(e) {
-                console.error("Local load error:", e);
-            }
-        }
-
-        // 2. Real-time Cloud Sync
-        if (window.db) {
-            window.db.collection('users').doc('hyrton').onSnapshot((doc) => {
-                const isFirstSync = !this.isCloudLoaded;
-                this.isCloudLoaded = true;
-
-                if (doc.exists) {
-                    const cloudData = doc.data().state;
-                    this.lastCloudData = cloudData;
-                    console.log("Cloud data received.");
-                    
-                    if (this.state.isAuthenticated) {
-                        // Merge cloud into local
-                        this.state = { ...this.state, ...cloudData };
-                        localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
+        console.log("Store: Initializing pure Firebase sync...");
+        
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                console.log("Auth: User identified:", user.email);
+                this.state.isAuthenticated = true;
+                
+                // Real-time listener per user
+                if (this.unsubscribeFirestore) this.unsubscribeFirestore();
+                
+                this.unsubscribeFirestore = window.db.collection('users').doc(user.uid).onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const cloudData = doc.data().state;
+                        // Synchronize state
+                        this.state = { ...this.state, ...cloudData, isAuthenticated: true };
+                        console.log("Sync: Data received from cloud.");
                         this.triggerUIRefresh();
                     }
-                } else {
-                    console.log("Cloud is empty.");
-                    // If we have local data but cloud is empty, upload it now
-                    if (this.state.isAuthenticated && (this.state.materias.length > 0 || this.state.editais.length > 0)) {
-                        console.log("Uploading local data to empty cloud...");
-                        this.save();
-                    }
-                }
-            }, (err) => {
-                console.error("Firestore sync error:", err);
-                this.isCloudLoaded = true; // Still allow local saves if cloud fails
-            });
-        }
+                }, (err) => {
+                    console.error("Firestore Sync Error:", err);
+                });
 
-        // Initial UI layout
-        this.triggerUIRefresh();
+            } else {
+                console.log("Auth: No user session.");
+                this.state.isAuthenticated = false;
+                if (this.unsubscribeFirestore) this.unsubscribeFirestore();
+                this.triggerUIRefresh();
+            }
+        });
     },
 
     triggerUIRefresh: function() {
@@ -253,12 +210,12 @@ window.store = {
             window.appControllers.checkAuth();
             window.appControllers.updateDashboard();
             
-            // Only refresh list controllers if we are authenticated
             if (this.state.isAuthenticated) {
                 if (window.editaisController) try { window.editaisController.render(); } catch(e){}
                 if (window.cronogramaController) try { window.cronogramaController.renderTable(); } catch(e){}
                 if (window.cadastrosController) try { window.cadastrosController.renderMateriasSelect(); } catch(e){}
                 if (window.materialController) try { window.materialController.render(); } catch(e){}
+                if (window.simuladosController) try { window.simuladosController.render(); } catch(e){}
             }
         }
     }
