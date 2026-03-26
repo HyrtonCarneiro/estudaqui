@@ -167,11 +167,17 @@ window.store = {
 
     // --- Persistence (Firestore Cloud) ---
     save: function() {
+        // ALWAYS save to local first for immediate feedback and session persistence
+        try {
+            localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
+        } catch(e) {}
+
         if (!window.db) return;
         
-        // CRITICAL: Avoid overwriting cloud with empty state if cloud isn't loaded yet
+        // Block cloud save only if we haven't confirmed the remote state yet
+        // to avoid wiping out existing cloud data with a "fresh" local state.
         if (!this.isCloudLoaded && this.state.isAuthenticated) {
-            console.warn("Save blocked: Cloud data not yet synchronized.");
+            console.log("Cloud save deferred until sync complete.");
             return;
         }
 
@@ -179,11 +185,6 @@ window.store = {
             state: this.state,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(err => console.error("Erro cloud save:", err));
-        
-        // Local fallback
-        try {
-            localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
-        } catch(e) {}
     },
 
     setAuth: function(val) {
@@ -204,44 +205,61 @@ window.store = {
         const saved = localStorage.getItem('concursos_ti_state');
         if (saved) {
             try {
-                this.state = { ...this.state, ...JSON.parse(saved) };
-            } catch(e) {}
+                const parsed = JSON.parse(saved);
+                this.state = { ...this.state, ...parsed };
+                console.log("Local state loaded:", this.state.isAuthenticated ? "Authenticated" : "Guest");
+            } catch(e) {
+                console.error("Local load error:", e);
+            }
         }
 
         // 2. Real-time Cloud Sync
         if (window.db) {
             window.db.collection('users').doc('hyrton').onSnapshot((doc) => {
+                const isFirstSync = !this.isCloudLoaded;
                 this.isCloudLoaded = true;
 
                 if (doc.exists) {
                     const cloudData = doc.data().state;
-                    this.lastCloudData = cloudData; // Cache for immediate login merge
+                    this.lastCloudData = cloudData;
                     console.log("Cloud data received.");
                     
-                    // Update state only if authenticated
                     if (this.state.isAuthenticated) {
+                        // Merge cloud into local
                         this.state = { ...this.state, ...cloudData };
                         localStorage.setItem('concursos_ti_state', JSON.stringify(this.state));
-                        
-                        if (window.appControllers) {
-                            window.appControllers.updateDashboard();
-                            if (window.editaisController) window.editaisController.render();
-                            if (window.cronogramaController) window.cronogramaController.renderTable();
-                            if (window.cadastrosController) window.cadastrosController.renderMateriasSelect();
-                        }
+                        this.triggerUIRefresh();
                     }
                 } else {
-                    console.log("No cloud data found.");
+                    console.log("Cloud is empty.");
+                    // If we have local data but cloud is empty, upload it now
+                    if (this.state.isAuthenticated && (this.state.materias.length > 0 || this.state.editais.length > 0)) {
+                        console.log("Uploading local data to empty cloud...");
+                        this.save();
+                    }
                 }
             }, (err) => {
-                console.error("Erro Firestore:", err);
+                console.error("Firestore sync error:", err);
+                this.isCloudLoaded = true; // Still allow local saves if cloud fails
             });
         }
 
-        // Final UI check
+        // Initial UI layout
+        this.triggerUIRefresh();
+    },
+
+    triggerUIRefresh: function() {
         if (window.appControllers) {
             window.appControllers.checkAuth();
             window.appControllers.updateDashboard();
+            
+            // Only refresh list controllers if we are authenticated
+            if (this.state.isAuthenticated) {
+                if (window.editaisController) try { window.editaisController.render(); } catch(e){}
+                if (window.cronogramaController) try { window.cronogramaController.renderTable(); } catch(e){}
+                if (window.cadastrosController) try { window.cadastrosController.renderMateriasSelect(); } catch(e){}
+                if (window.materialController) try { window.materialController.render(); } catch(e){}
+            }
         }
     }
 };
