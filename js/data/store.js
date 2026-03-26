@@ -17,7 +17,8 @@ window.store = {
             ultimaDataEstudo: null,
             totalPaginasLidas: 0,
             totalHorasEstudo: 0
-        }
+        },
+        hasLoadedFromCloud: false
     },
 
     getState: function() {
@@ -269,6 +270,10 @@ window.store = {
 
     save: function() {
         if (!window.db || !this.state.isAuthenticated) return;
+        if (!this.state.hasLoadedFromCloud) {
+            console.warn("Store: Save blocked because cloud data hasn't loaded yet.");
+            return;
+        }
 
         // Optimistic Refresh
         this.triggerUIRefresh();
@@ -338,9 +343,16 @@ window.store = {
         
         // Restore session from browser
         const isAuth = localStorage.getItem('auth_session') === 'true';
-        const savedUser = localStorage.getItem('auth_user');
+        let savedUser = localStorage.getItem('auth_user'); // Fixed redeclaration
         
         this.state.isAuthenticated = isAuth;
+        
+        // EMERGENCY FIX: Standardize Hyrton casing
+        if (savedUser && savedUser.toLowerCase() === 'hyrton') {
+            savedUser = 'Hyrton';
+            localStorage.setItem('auth_user', 'Hyrton');
+        }
+        
         this.state.currentUser = savedUser;
 
         if (isAuth && savedUser) {
@@ -359,6 +371,11 @@ window.store = {
 
     initSync: function() {
         if (!window.db || !this.state.currentUser) return;
+        
+        // Standardize casing for Firestore document ID
+        if (this.state.currentUser.toLowerCase() === 'hyrton') {
+            this.state.currentUser = 'Hyrton';
+        }
         
         console.log(`Syncing for user: ${this.state.currentUser}`);
         if (this.unsubscribeFirestore) this.unsubscribeFirestore();
@@ -412,7 +429,7 @@ window.store = {
                 }
 
                 // Merge cloud data into state
-                this.state = { ...this.state, ...cloudData, isAuthenticated: true };
+                this.state = { ...this.state, ...cloudData, isAuthenticated: true, hasLoadedFromCloud: true };
                 console.log("Sync: Cloud data received and sanitized.");
             } else {
                 console.log("Sync: No remote data. Ready for updates.");
