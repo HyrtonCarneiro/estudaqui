@@ -8,8 +8,8 @@ window.appControllers = {
 
     checkAuth: function() {
         if (window.store.getState().isAuthenticated) {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-app').classList.remove('hidden');
+            document.getElementById('view-login').style.display = 'none';
+            document.getElementById('view-app').style.display = 'block';
             
             // Navigate to dashboard ONLY if we are starting fresh (no current page)
             if (!this.currentPage) {
@@ -19,8 +19,8 @@ window.appControllers = {
                 this.navigate(this.currentPage);
             }
         } else {
-            document.getElementById('view-login').classList.remove('hidden');
-            document.getElementById('view-app').classList.add('hidden');
+            document.getElementById('view-login').style.display = 'flex';
+            document.getElementById('view-app').style.display = 'none';
             this.currentPage = null;
         }
     },
@@ -58,17 +58,17 @@ window.appControllers = {
 
     navigate: function(pageId) {
         this.currentPage = pageId;
-        // Hide all pages
+        // Hide all pages with direct style to ensure they don't take space
         document.querySelectorAll('.page-section').forEach(el => {
+            el.style.display = 'none';
             el.classList.add('hidden');
-            el.classList.remove('block');
         });
         
         // Show target page
         const target = document.getElementById('page-' + pageId);
         if (target) {
+            target.style.display = 'block';
             target.classList.remove('hidden');
-            target.classList.add('block');
         }
         
         // Update nav buttons styling
