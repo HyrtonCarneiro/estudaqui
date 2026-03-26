@@ -52,6 +52,9 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     </style>
 
     <!-- Firebase SDK (CDN) -->
@@ -496,17 +499,82 @@
 
             </section>
 
-            <!-- Materiais Page -->
+            <!-- Materiais Page (Knowledge Base Refactored) -->
             <section id="page-materiais" class="page-section hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Meu Material (Knowledge Base)</h2>
-                    <div class="relative w-64">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="input-search-materiais" class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all text-sm" placeholder="Buscar material...">
+                <div class="mb-10">
+                    <h2 class="text-3xl font-black text-gray-900 tracking-tight">Minha Base de Conhecimento</h2>
+                    <p class="text-gray-400 text-sm font-medium">Organize links, arquivos e anotações para cada assunto</p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Sidebar: Matérias -->
+                    <aside class="lg:w-64 flex-shrink-0">
+                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 sticky top-24">
+                            <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 px-1">Filtrar Disciplina</h4>
+                            <nav id="sidebar-materiais-list" class="space-y-2">
+                                <!-- JS Items -->
+                                <button class="w-full text-left px-4 py-3 rounded-xl bg-primary-600 text-white font-bold text-xs transition-all shadow-lg shadow-primary-100">Todas</button>
+                            </nav>
+                        </div>
+                    </aside>
+
+                    <!-- Main Content: Conteúdos Grid -->
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 id="materiais-current-materia-title" class="text-xl font-black text-gray-800">Todos os Conteúdos</h3>
+                            <div class="relative w-64 group">
+                                <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors"></i>
+                                <input type="text" id="input-search-materiais" class="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm text-sm" placeholder="Buscar assunto...">
+                            </div>
+                        </div>
+                        
+                        <div id="container-materiais" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <!-- Cards de materiais injetados via JS -->
+                        </div>
                     </div>
                 </div>
-                <div id="container-materiais" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Cards de materiais injetados via JS -->
+
+                <!-- Modal: Gerenciar Material (O QUE FALTAVA) -->
+                <div id="modal-material-details" class="fixed inset-0 z-[150] bg-gray-900/60 backdrop-blur-md hidden flex items-center justify-center p-4">
+                    <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden" id="modal-material-details-content">
+                        <div class="px-10 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 id="material-detail-title" class="text-xl font-black text-gray-900 leading-tight">Gestão de Material</h3>
+                                <p id="material-detail-materia" class="text-[10px] text-primary-500 font-bold uppercase tracking-widest">Matéria</p>
+                            </div>
+                            <button onclick="window.materialController.fecharModal()" class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-white rounded-full transition-all"><i class="ph ph-x text-2xl"></i></button>
+                        </div>
+                        
+                        <div class="p-10 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            <input type="hidden" id="input-material-conteudo-id">
+                            
+                            <!-- Links Section -->
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">Links e Referências</label>
+                                <div id="material-links-list" class="space-y-3 mb-6">
+                                    <!-- JS Items -->
+                                </div>
+                                <div class="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-200">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase mb-4">Adicionar Novo Link</p>
+                                    <div class="flex gap-3">
+                                        <input type="url" id="input-new-material-link" class="flex-1 p-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://drive.google.com/...">
+                                        <button onclick="window.materialController.handleAddLink()" class="px-6 bg-primary-600 text-white font-black py-3 rounded-xl hover:bg-primary-700 transition-all text-[10px] uppercase shadow-lg shadow-primary-200">Adicionar</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notes Section -->
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">Notas e Resumo</label>
+                                <textarea id="textarea-material-notes" class="w-full h-40 p-5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none text-sm leading-relaxed" placeholder="Resuma os pontos chave deste assunto para facilitar sua revisão rápida..."></textarea>
+                                <p class="text-[9px] text-gray-400 mt-2 font-medium px-1 italic">Salvamento automático ao fechar.</p>
+                            </div>
+                        </div>
+
+                        <div class="px-10 py-6 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                            <button onclick="window.materialController.fecharModal()" class="flex-1 py-4 bg-gray-900 border border-gray-100 text-white font-black rounded-2xl hover:bg-primary-600 transition-all uppercase tracking-widest text-[10px] shadow-lg">Fechar e Salvar Notas</button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
