@@ -58,7 +58,8 @@ window.appControllers = {
             btnLogout.addEventListener('click', async () => {
                 try {
                     await window.authLogic.logout();
-                    window.utils.showToast("Você saiu da conta.", "info");
+                    window.utils.showToast("Saindo...", "info");
+                    setTimeout(() => window.location.reload(), 500); // Force clean state
                 } catch (err) {
                     window.utils.showToast("Erro ao sair: " + err.message, "error");
                 }
