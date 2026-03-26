@@ -53,8 +53,9 @@ WebApp para organizar cronogramas de estudos para TI e outros assuntos, hospedad
 - Gráfico de pizza (distribuição de tempo/matéria).
 - Gráfico de barras (páginas lidas por dia).
 
-## 13. Editais com Countdown
+## 13. Editais Compartilhados (Sincronização Global)
 - Exibir cronômetro regressivo para a data da prova em cada edital ativo.
+- **Sincronização:** Todas as adições, edições ou exclusões de editais são compartilhadas em tempo real entre todos os usuários da plataforma.
 
 ## 14. Requisitos Não Funcionais (baseado em RULES.md)
 - **Design:** Premium Aesthetics, Atomic Design, Tailwind CSS.

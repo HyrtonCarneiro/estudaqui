@@ -198,6 +198,7 @@ window.store = {
         return this.state.materiais.find(m => m.conteudoId === conteudoId) || { conteudoId, links: [], notas: "" };
     },
 
+    // --- Shared Editais Logic ---
     addEdital: function(editalData) {
         if (!editalData.nome) throw new Error("Nome do concurso é obrigatório");
         const id = 'ed_' + Date.now();
@@ -206,22 +207,21 @@ window.store = {
             status: 'Ativo', 
             ...editalData 
         };
-        this.state.editais.push(edital);
-        this.save();
+        
+        // Write directly to shared collection
+        const newList = [...this.state.editais, edital];
+        window.db.collection('shared').doc('editais').set({ data: newList });
         return edital;
     },
 
     updateEdital: function(id, data) {
-        const index = this.state.editais.findIndex(e => e.id === id);
-        if (index !== -1) {
-            this.state.editais[index] = { ...this.state.editais[index], ...data };
-            this.save();
-        }
+        const newList = this.state.editais.map(e => e.id === id ? { ...e, ...data } : e);
+        window.db.collection('shared').doc('editais').set({ data: newList });
     },
 
     removeEdital: function(id) {
-        this.state.editais = this.state.editais.filter(e => e.id !== id);
-        this.save();
+        const newList = this.state.editais.filter(e => e.id !== id);
+        window.db.collection('shared').doc('editais').set({ data: newList });
     },
 
     // --- Persistence (Pure Firestore) ---
@@ -248,6 +248,7 @@ window.store = {
         // Clean any undefined values (Firestore fails on them)
         const dataToSave = this.cleanData(this.state);
         delete dataToSave.userList; // Don't save central user list into personal doc
+        delete dataToSave.editais;  // Don't save shared editais into personal doc
 
         window.db.collection('users').doc(this.state.currentUser).set({
             state: dataToSave,
@@ -309,6 +310,7 @@ window.store = {
 
         if (isAuth && savedUser) {
             this.initSync();
+            this.syncSharedEditais(); // Start shared editais sync
         } else {
             this.hideLoading();
             this.triggerUIRefresh();
@@ -329,6 +331,7 @@ window.store = {
         this.unsubscribeFirestore = window.db.collection('users').doc(this.state.currentUser).onSnapshot((doc) => {
             if (doc.exists) {
                 let cloudData = doc.data().state;
+                delete cloudData.editais; // Force use of shared data even if old data exists
 
                 // Self-heal duplicate IDs in cronograma (common bug with Date.now() IDs)
                 if (cloudData && cloudData.cronograma) {
@@ -370,10 +373,18 @@ window.store = {
         if (!window.db) return;
         window.db.collection('users').doc('_admin_').onSnapshot((doc) => {
             if (doc.exists) {
-                this.state.userList = doc.data().userList || [];
+                let list = doc.data().userList || [];
+                // Auto-fix: Ensure 'Hyrton' is capitalized if it was seeded as 'hyrton'
+                list = list.map(u => {
+                    if (u.username.toLowerCase() === 'hyrton' && u.username === 'hyrton') {
+                        return { ...u, username: 'Hyrton' };
+                    }
+                    return u;
+                });
+                this.state.userList = list;
             } else {
                 // Seed with Hyrton if list is empty
-                const initialList = [{ username: 'hyrton', password: 'hyrtinho' }];
+                const initialList = [{ username: 'Hyrton', password: 'hyrtinho' }];
                 window.db.collection('users').doc('_admin_').set({ userList: initialList });
                 this.state.userList = initialList;
             }
@@ -383,9 +394,13 @@ window.store = {
 
     createUser: function(username, password) {
         if (!this.isAdmin()) throw new Error("Ação permitida apenas para administradores");
-        if (this.state.userList.find(u => u.username === username)) throw new Error("Usuário já existe");
         
-        const newList = [...this.state.userList, { username, password }];
+        const usernameTrimmed = username.trim();
+        if (this.state.userList.find(u => u.username.toLowerCase() === usernameTrimmed.toLowerCase())) {
+            throw new Error("Usuário já existe");
+        }
+        
+        const newList = [...this.state.userList, { username: usernameTrimmed, password }];
         return window.db.collection('users').doc('_admin_').update({
             userList: newList
         });
@@ -398,6 +413,21 @@ window.store = {
         const newList = this.state.userList.filter(u => u.username !== username);
         return window.db.collection('users').doc('_admin_').update({
             userList: newList
+        });
+    },
+
+    syncSharedEditais: function() {
+        if (!window.db) return;
+        if (this.unsubscribeSharedEditais) this.unsubscribeSharedEditais();
+        
+        this.unsubscribeSharedEditais = window.db.collection('shared').doc('editais').onSnapshot((doc) => {
+            if (doc.exists) {
+                this.state.editais = doc.data().data || [];
+            } else {
+                // Initial creation of shared editais doc
+                window.db.collection('shared').doc('editais').set({ data: [] });
+            }
+            this.triggerUIRefresh();
         });
     },
 
