@@ -42,8 +42,8 @@ window.materialController = {
                     <a href="${link}" target="_blank" class="text-xs font-bold text-gray-600 hover:text-primary-600 truncate flex-1 flex items-center gap-2">
                         <i class="ph ph-link-bold text-primary-400"></i> Local ${idx + 1}
                     </a>
-                    <button onclick="window.materialController.removeLink('${c.id}', ${idx})" class="p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover/link:opacity-100 transition-opacity">
-                        <i class="ph ph-x-bold text-sm"></i>
+                    <button onclick="window.materialController.removeLink('${c.id}', ${idx})" class="p-1.5 text-gray-300 hover:text-red-500 opacity-30 group-hover/link:opacity-100 transition-opacity">
+                        <i class="ph ph-x text-sm"></i>
                     </button>
                 </div>
             `).join('');
@@ -59,7 +59,7 @@ window.materialController = {
                     </div>
                     <div>
                         <button onclick="window.materialController.abrirModal('${c.id}')" class="w-full py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-600 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg">
-                            <i class="ph ph-plus-circle-bold"></i> Gerenciar Materiais
+                            <i class="ph ph-plus-circle"></i> Gerenciar Materiais
                         </button>
                     </div>
                 </div>

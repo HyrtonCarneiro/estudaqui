@@ -195,15 +195,15 @@ window.cronogramaController = {
                     <span class="px-3 py-1.5 bg-gray-50 text-[10px] font-black text-gray-500 rounded-xl uppercase tracking-widest">${item.paginas || '--'} Pág.</span>
                 </td>
                 <td class="px-8 py-5 text-right">
-                    <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="flex justify-end gap-1 opacity-30 group-hover:opacity-100 transition-opacity">
                         <button onclick="window.cronogramaController.startFocus('${item.id}')" class="p-2 text-gray-300 hover:text-primary-500 hover:bg-primary-50 rounded-xl transition-all" title="Iniciar Pomodoro">
-                            <i class="ph ph-timer-bold text-lg"></i>
+                            <i class="ph ph-timer text-lg"></i>
                         </button>
                         <button onclick="window.cronogramaController.goMaterial('${item.conteudoId}')" class="p-2 text-gray-300 hover:text-primary-500 hover:bg-primary-50 rounded-xl transition-all" title="Ver Notas/Links">
-                            <i class="ph ph-notebook-bold text-lg"></i>
+                            <i class="ph ph-notebook text-lg"></i>
                         </button>
                         <button onclick="window.cronogramaController.removerItem('${item.id}')" class="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Remover">
-                            <i class="ph ph-trash-bold text-lg"></i>
+                            <i class="ph ph-trash text-lg"></i>
                         </button>
                     </div>
                 </td>
@@ -216,9 +216,8 @@ window.cronogramaController = {
         try {
             const item = window.store.getState().cronograma.find(i => i.id === id);
             if (item.concluido) {
-                item.concluido = false;
-                item.dataConclusao = null;
-                // Note: reverting stats is complex, leaving for now as user just asked to mark.
+                window.store.desmarcarItemCronograma(id);
+                window.utils.showToast("Item desmarcado.", "info");
             } else {
                 window.store.concluirItemCronograma(id);
                 window.spacedRepetition.gerarRevisoesParaConteudo(item.conteudoId, item.dataConclusao);

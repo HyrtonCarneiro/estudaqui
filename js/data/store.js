@@ -109,13 +109,21 @@ window.store = {
         item.concluido = true;
         item.dataConclusao = new Date().toISOString();
         
-        // Update stats
-        this.state.estatisticas.totalPaginasLidas += (item.paginas || 0);
+        // Update stats (controllers will re-calculate totalPaginasLidas)
         this.updateStreak();
         this.save();
 
         // Trigger spaced repetition logic (called from controller)
         return item;
+    },
+
+    desmarcarItemCronograma: function(id) {
+        const item = this.state.cronograma.find(i => i.id === id);
+        if (item) {
+            item.concluido = false;
+            item.dataConclusao = null;
+            this.save();
+        }
     },
 
     updateStreak: function() {

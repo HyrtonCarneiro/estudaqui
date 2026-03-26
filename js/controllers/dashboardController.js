@@ -10,14 +10,15 @@ window.dashboardController = {
     },
 
     updateKPIs: function(state) {
-        const stats = state.estatisticas || {};
         const elMaterias = document.getElementById('dash-total-materias');
         const elConteudos = document.getElementById('dash-total-conteudos');
         const elPaginas = document.getElementById('dash-total-paginas');
         
+        const totalPaginas = (state.cronograma || []).filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
+        
         if (elMaterias) elMaterias.textContent = state.materias.length;
         if (elConteudos) elConteudos.textContent = state.cronograma.length;
-        if (elPaginas) elPaginas.textContent = stats.totalPaginasLidas || 0;
+        if (elPaginas) elPaginas.textContent = totalPaginas;
     },
 
     renderRevisoes: function(state) {
