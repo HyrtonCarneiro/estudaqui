@@ -47,7 +47,7 @@ window.materialController = {
         let html = `
             <button onclick="window.materialController.selectMateria('all')" 
                 class="w-full text-left px-4 py-3 rounded-xl font-bold text-xs transition-all ${this.selectedMateriaId === 'all' ? 'bg-primary-600 text-white shadow-lg shadow-primary-100' : 'text-gray-500 hover:bg-gray-50'}">
-                <i class="ph ph-squares-four font-bold mr-2"></i> Todas
+                <i class="ph-bold ph-squares-four mr-2"></i> Todas
             </button>
         `;
 
@@ -56,7 +56,7 @@ window.materialController = {
             html += `
                 <button onclick="window.materialController.selectMateria('${m.id}')" 
                     class="w-full text-left px-4 py-3 rounded-xl font-bold text-xs transition-all ${isSelected ? 'bg-primary-600 text-white shadow-lg shadow-primary-100' : 'text-gray-500 hover:bg-gray-50'}">
-                    <i class="ph ph-folder font-bold mr-2"></i> ${m.nome}
+                    <i class="ph-bold ph-folder mr-2"></i> ${m.nome}
                 </button>
             `;
         });
@@ -94,7 +94,7 @@ window.materialController = {
         if (filtered.length === 0) {
             this.container.innerHTML = `
                 <div class="col-span-full py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-200">
-                    <i class="ph ph-book-open-text text-gray-100 text-7xl mb-4"></i>
+                    <i class="ph ph-book-open text-gray-100 text-7xl mb-4"></i>
                     <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">Nenhum assunto disponível nesta categoria</p>
                 </div>
             `;
@@ -141,7 +141,7 @@ window.materialController = {
                     </div>
 
                     <button onclick="window.materialController.abrirModal('${c.id}')" class="w-full py-3.5 bg-primary-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-primary-100">
-                        <i class="ph ph-pencil-simple-line font-bold"></i> Gerenciar Material
+                        <i class="ph-bold ph-pencil-simple-line"></i> Gerenciar Material
                     </button>
                 </div>
             `;
@@ -185,10 +185,10 @@ window.materialController = {
         this.linksList.innerHTML = links.map((l, idx) => `
             <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-primary-300 transition-all group">
                 <a href="${l}" target="_blank" class="text-xs font-bold text-gray-700 hover:text-primary-600 truncate flex-1 flex items-center gap-3 pr-4">
-                    <i class="ph ph-link-bold text-primary-400"></i> ${l}
+                    <i class="ph-bold ph-link text-primary-400"></i> ${l}
                 </a>
                 <button onclick="window.materialController.removeLink(${idx})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-95">
-                    <i class="ph ph-trash font-bold"></i>
+                    <i class="ph-bold ph-trash"></i>
                 </button>
             </div>
         `).join('');

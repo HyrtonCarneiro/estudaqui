@@ -57,7 +57,7 @@ window.gamificationController = {
         badgesConfig.forEach(b => {
             const div = document.createElement('div');
             const grayscale = b.requirement ? "" : "grayscale opacity-20 cursor-not-allowed";
-            const lockedIcon = b.requirement ? "" : '<i class="ph ph-lock-bold absolute top-2 right-2 text-gray-400/50"></i>';
+            const lockedIcon = b.requirement ? "" : '<i class="ph-bold ph-lock absolute top-2 right-2 text-gray-400/50"></i>';
             
             div.className = `relative group bg-white p-6 rounded-[2rem] shadow-premium border border-gray-50 flex flex-col items-center text-center transition-all ${b.requirement ? 'hover:-translate-y-2 hover:shadow-xl hover:border-primary-100' : ''}`;
             div.innerHTML = `

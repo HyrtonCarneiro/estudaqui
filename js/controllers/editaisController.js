@@ -221,7 +221,7 @@ window.editaisController = {
                     <div class="flex items-center gap-1.5 mt-auto pt-3 border-t border-gray-50">
                         ${ed.link ? `
                             <a href="${ed.link}" target="_blank" class="p-2 bg-gray-50 text-gray-400 rounded-lg hover:text-primary-600 hover:bg-primary-50 transition-all active:scale-95" title="Link">
-                                <i class="ph ph-link-simple-bold"></i>
+                                <i class="ph-bold ph-link-simple"></i>
                             </a>
                         ` : ''}
                         

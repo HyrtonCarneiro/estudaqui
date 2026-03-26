@@ -275,10 +275,10 @@ window.cronogramaController = {
                 <td class="px-8 py-5 text-right">
                     <div class="flex justify-end gap-2 relative z-10">
                         <button onclick="window.cronogramaController.editar('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95" title="Editar Estudo">
-                            <i class="ph ph-pencil-simple font-bold"></i> <span class="text-[9px] font-black uppercase">Editar</span>
+                            <i class="ph-bold ph-pencil-simple"></i> <span class="text-[9px] font-black uppercase">Editar</span>
                         </button>
                         <button onclick="window.cronogramaController.removerItem('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95" title="Remover">
-                            <i class="ph ph-trash font-bold"></i> <span class="text-[9px] font-black uppercase">Excluir</span>
+                            <i class="ph-bold ph-trash"></i> <span class="text-[9px] font-black uppercase">Excluir</span>
                         </button>
                     </div>
                 </td>

@@ -32,7 +32,7 @@ window.dashboardController = {
         if (revisoesHoje.length === 0) {
             container.innerHTML = `
                 <div class="py-12 text-center bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200">
-                    <i class="ph ph-champagne text-primary-300 text-5xl mb-4"></i>
+                    <i class="ph ph-confetti text-primary-300 text-5xl mb-4"></i>
                     <p class="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Tudo revisado por hoje!</p>
                 </div>
             `;
@@ -48,7 +48,7 @@ window.dashboardController = {
             div.innerHTML = `
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 font-black text-xs">
-                        <i class="ph ph-book-open-fill text-lg"></i>
+                        <i class="ph-fill ph-book-open text-lg"></i>
                     </div>
                     <div>
                         <p class="text-[9px] font-black text-primary-500 uppercase tracking-widest mb-1">${materia ? materia.nome : '-'}</p>
@@ -56,7 +56,7 @@ window.dashboardController = {
                     </div>
                 </div>
                 <button onclick="window.dashboardController.concluirRevisao('${rev.id}')" class="w-10 h-10 rounded-xl bg-gray-50 text-gray-300 hover:bg-green-500 hover:text-white transition-all flex items-center justify-center active:scale-95 shadow-lg">
-                    <i class="ph ph-check-bold"></i>
+                    <i class="ph-bold ph-check"></i>
                 </button>
             `;
             container.appendChild(div);
