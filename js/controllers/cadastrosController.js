@@ -30,6 +30,7 @@ window.cadastrosController = {
         this.inputEditConteudoId = document.getElementById('edit-conteudo-id');
         this.inputEditConteudoNome = document.getElementById('edit-conteudo-nome');
         this.inputEditConteudoPaginas = document.getElementById('edit-conteudo-paginas');
+        this.selectEditConteudoMateria = document.getElementById('edit-conteudo-materia');
     },
 
     bindEvents: function() {
@@ -76,6 +77,7 @@ window.cadastrosController = {
             this.formEditConteudo.addEventListener('submit', (e) => {
                 e.preventDefault();
                 window.store.updateConteudo(this.inputEditConteudoId.value, {
+                    materiaId: this.selectEditConteudoMateria.value,
                     nome: this.inputEditConteudoNome.value,
                     paginas: this.inputEditConteudoPaginas.value
                 });
@@ -98,6 +100,12 @@ window.cadastrosController = {
             let htmlCron = '<option value="" disabled selected>Selecione uma matéria</option>';
             materias.forEach(m => { htmlCron += `<option value="${m.id}">${m.nome}</option>`; });
             selectCronograma.innerHTML = htmlCron;
+        }
+
+        if (this.selectEditConteudoMateria) {
+            let htmlEdit = '<option value="" disabled selected>Selecione uma matéria</option>';
+            materias.forEach(m => { htmlEdit += `<option value="${m.id}">${m.nome}</option>`; });
+            this.selectEditConteudoMateria.innerHTML = htmlEdit;
         }
     },
 
@@ -200,6 +208,9 @@ window.cadastrosController = {
             this.inputEditConteudoId.value = conteudo.id;
             this.inputEditConteudoNome.value = conteudo.nome;
             this.inputEditConteudoPaginas.value = conteudo.paginas;
+            if (this.selectEditConteudoMateria) {
+                this.selectEditConteudoMateria.value = conteudo.materiaId;
+            }
             this.modalEditConteudo.classList.remove('hidden');
         }
     },
