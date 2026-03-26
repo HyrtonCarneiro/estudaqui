@@ -40,9 +40,9 @@ window.appControllers = {
                 const pass = document.getElementById('input-password').value;
                 
                 try {
-                    const success = await window.authLogic.login(user, pass);
-                    if (success) {
-                        window.store.setAuth(true, user.toLowerCase()); // Triggers Sync
+                    const authResult = await window.authLogic.login(user, pass);
+                    if (authResult) {
+                        window.store.setAuth(true, authResult.username); // Use original casing from DB
                         window.utils.showToast("Login iniciado!", "success");
                     } else {
                         window.utils.showToast("Usuário ou senha incorretos.", "error");

@@ -15,14 +15,17 @@ window.authLogic = {
             if (doc.exists) {
                 const userList = doc.data().userList || [];
                 const user = userList.find(u => u.username.toLowerCase() === userLower && u.password === password);
-                return !!user;
+                return user || false;
             }
             
             return false;
         } catch (err) {
             console.error("Login Error:", err);
             // If offline or first time, still allow Hyrton
-            return (userLower === 'hyrton' && password === 'hyrtinho');
+            if (userLower === 'hyrton' && password === 'hyrtinho') {
+                return { username: 'Hyrton' };
+            }
+            return false;
         }
     },
     
