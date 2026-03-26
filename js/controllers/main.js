@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.appControllers) window.appControllers.init();
 
     // 2. Feature Trackers
+    if (window.dashboardController && window.dashboardController.init) window.dashboardController.init();
     if (window.cronogramaController) window.cronogramaController.init();
     if (window.cadastrosController) window.cadastrosController.init();
     if (window.pomodoroController) window.pomodoroController.init();

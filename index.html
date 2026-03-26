@@ -65,6 +65,9 @@
         }
     </style>
 
+    <!-- Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- Firebase SDK (CDN) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -163,46 +166,100 @@
         <main class="max-w-7xl mx-auto p-6">
             
             <!-- Dashboard Page -->
-            <section id="page-dashboard" class="page-section hidden">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Sua Evolução</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                <i class="ph ph-book-open text-2xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Total Matérias</p>
-                                <p id="dash-total-materias" class="text-2xl font-bold text-gray-800">2</p>
-                            </div>
-                        </div>
+            <section id="page-dashboard" class="page-section hidden page-transition">
+                <div class="mb-10 flex flex-wrap items-end justify-between gap-6">
+                    <div>
+                        <h2 class="text-3xl font-black text-gray-900 tracking-tight">Sua Evolução</h2>
+                        <p class="text-gray-400 text-sm font-medium">Resumo do seu desempenho e planejamento</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-                                <i class="ph ph-graduation-cap text-2xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Conteúdos no Plano</p>
-                                <p id="dash-total-conteudos" class="text-2xl font-bold text-gray-800">0</p>
-                            </div>
+                    <div id="dash-overall-progress-container" class="bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Progresso Geral</p>
+                            <p id="dash-perc-concluido" class="text-xl font-black text-primary-600">0%</p>
                         </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                                <i class="ph ph-bookmarks text-2xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Páginas Lidas</p>
-                                <p id="dash-total-paginas" class="text-2xl font-bold text-gray-800">0</p>
-                            </div>
+                        <div class="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="dash-progress-bar" class="h-full bg-primary-600 transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-4">Próximos Passos</h3>
-                    <p class="text-gray-600">Você ainda não completou estudos esta semana. Acesse a aba **Cronograma** para planejar sua rotina.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                    <!-- Stat Cards -->
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
+                            <i class="ph-bold ph-book-open text-2xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Matérias</p>
+                            <p id="dash-stat-materias" class="text-xl font-black text-gray-900 truncate">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 shrink-0">
+                            <i class="ph-bold ph-files text-2xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Páginas Lidas</p>
+                            <p id="dash-stat-paginas" class="text-xl font-black text-gray-900 truncate">0 / 0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 shrink-0">
+                            <i class="ph-bold ph-calendar text-2xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Semanas Ativas</p>
+                            <p id="dash-stat-semanas" class="text-xl font-black text-gray-900 truncate">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4 border-l-4 border-l-primary-600">
+                        <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shrink-0">
+                            <i class="ph-bold ph-newspaper text-2xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Próximo Edital</p>
+                            <p id="dash-stat-proximo-edital" class="text-[11px] font-black text-gray-900 truncate uppercase tracking-tighter">Nenhum</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                    <!-- Chart: Progress by Subject -->
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
+                        <h3 class="text-lg font-black text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="ph-bold ph-chart-pie-slice text-primary-500"></i> Distribuição por Matéria
+                        </h3>
+                        <div class="h-64 flex items-center justify-center relative">
+                            <canvas id="chart-dash-progresso"></canvas>
+                            <div id="chart-dash-empty-msg" class="absolute inset-0 flex items-center justify-center bg-white/80 hidden">
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Sem dados suficientes</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart: Upcoming Editais -->
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
+                        <h3 class="text-lg font-black text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="ph-bold ph-trend-up text-primary-500"></i> Cronograma de Editais
+                        </h3>
+                        <div class="h-64">
+                            <canvas id="chart-dash-editais"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary-600/20 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-primary-600/30 transition-all"></div>
+                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                        <div class="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl">
+                            <i class="ph-bold ph-rocket-launch text-primary-400"></i>
+                        </div>
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="text-2xl font-black mb-2 tracking-tight">Rumo à sua Aprovação!</h3>
+                            <p class="text-gray-400 text-sm max-w-xl">Continue mantendo sua constância nos estudos. O sucesso é a soma de pequenos esforços repetidos dia após dia.</p>
+                        </div>
+                        <button onclick="window.appControllers.navigate('cronograma')" class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-500 hover:text-white transition-all shadow-xl active:scale-95">Ver Meul Cronograma</button>
+                    </div>
                 </div>
             </section>
 
@@ -780,6 +837,7 @@
     <script src="js/logic/pomodoro.js"></script>
     <!-- 4. Controllers -->
     <script src="js/controllers/appController.js"></script>
+    <script src="js/controllers/dashboardController.js"></script>
     <script src="js/controllers/cronogramaController.js"></script>
     <script src="js/controllers/cadastrosController.js"></script>
     <script src="js/controllers/editaisController.js"></script>

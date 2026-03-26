@@ -1,140 +1,174 @@
 window.dashboardController = {
-    chart: null,
-    
+    chartProgresso: null,
+    chartEditais: null,
+
+    init: function() {
+        // This will be called by appController or main.js
+    },
+
     update: function() {
         const state = window.store.getState();
-        this.updateKPIs(state);
-        this.renderRevisoes(state);
-        this.renderTopMaterias(state);
-        this.renderCharts(state);
-    },
-
-    updateKPIs: function(state) {
-        const elMaterias = document.getElementById('dash-total-materias');
-        const elConteudos = document.getElementById('dash-total-conteudos');
-        const elPaginas = document.getElementById('dash-total-paginas');
-        
-        const totalPaginas = (state.cronograma || []).filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
-        
-        if (elMaterias) elMaterias.textContent = state.materias.length;
-        if (elConteudos) elConteudos.textContent = state.cronograma.length;
-        if (elPaginas) elPaginas.textContent = totalPaginas;
-    },
-
-    renderRevisoes: function(state) {
-        const container = document.getElementById('list-revisoes-hoje');
-        if (!container) return;
-        
-        const revisoesHoje = window.spacedRepetition ? window.spacedRepetition.getRevisoesParaHoje() : [];
-        
-        container.innerHTML = "";
-        
-        if (revisoesHoje.length === 0) {
-            container.innerHTML = `
-                <div class="py-12 text-center bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200">
-                    <i class="ph ph-confetti text-primary-300 text-5xl mb-4"></i>
-                    <p class="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Tudo revisado por hoje!</p>
-                </div>
-            `;
-            return;
-        }
-
-        revisoesHoje.forEach(rev => {
-            const conteudo = state.conteudos.find(c => c.id === rev.conteudoId);
-            const materia = state.materias.find(m => m.id === (conteudo ? conteudo.materiaId : ''));
-            
-            const div = document.createElement('div');
-            div.className = 'group flex items-center justify-between p-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-sm hover:shadow-premium hover:border-primary-100 transition-all';
-            div.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 font-black text-xs">
-                        <i class="ph-fill ph-book-open text-lg"></i>
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-black text-primary-500 uppercase tracking-widest mb-1">${materia ? materia.nome : '-'}</p>
-                        <h4 class="font-bold text-gray-800 tracking-tight">${conteudo ? conteudo.nome : 'Desconhecido'}</h4>
-                    </div>
-                </div>
-                <button onclick="window.dashboardController.concluirRevisao('${rev.id}')" class="w-10 h-10 rounded-xl bg-gray-50 text-gray-300 hover:bg-green-500 hover:text-white transition-all flex items-center justify-center active:scale-95 shadow-lg">
-                    <i class="ph-bold ph-check"></i>
-                </button>
-            `;
-            container.appendChild(div);
-        });
-    },
-
-    renderTopMaterias: function(state) {
-        const container = document.getElementById('list-top-materias');
-        if (!container) return;
-        
-        container.innerHTML = "";
-        
+        const materiais = state.materiais || [];
         const cronograma = state.cronograma || [];
-        const counts = {};
-        cronograma.filter(i => i.concluido).forEach(i => {
-            const materia = state.materias.find(m => m.id === i.materiaId);
-            const nome = materia ? materia.nome : 'Matéria';
-            counts[nome] = (counts[nome] || 0) + 1;
-        });
+        const editais = state.editais || [];
 
-        const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 4);
+        // 1. Basic Stats
+        const totalMaterias = materiais.length;
         
-        if (sorted.length === 0) {
-            container.innerHTML = '<div class="py-10 text-center opacity-40"><p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Sem dados de progresso</p></div>';
-            return;
-        }
-
-        sorted.forEach(([nome, total]) => {
-            const perc = Math.min(100, (total / 10) * 100);
-            const div = document.createElement('div');
-            div.className = 'space-y-2';
-            div.innerHTML = `
-                <div class="flex justify-between items-center text-[10px]">
-                    <span class="font-black text-gray-900 uppercase tracking-tight">${nome || 'Matéria'}</span>
-                    <span class="font-black text-primary-600">${total} CONCLUÍDOS</span>
-                </div>
-                <div class="h-2 w-full bg-primary-50 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-primary-500 to-primary-700 transition-all duration-1000 shadow-sm" style="width: ${perc}%"></div>
-                </div>
-            `;
-            container.appendChild(div);
+        let totalPaginas = 0;
+        materiais.forEach(m => {
+            (m.conteudos || []).forEach(c => {
+                totalPaginas += (Number(c.paginas) || 0);
+            });
         });
+
+        const paginasLidas = cronograma.filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
+        const percGeral = totalPaginas > 0 ? Math.round((paginasLidas / totalPaginas) * 100) : 0;
+        
+        const semanasAtivas = new Set(cronograma.map(i => i.weekId)).size;
+
+        // 2. Proximo Edital
+        const now = new Date();
+        const upcomingEditais = editais
+            .filter(e => e.dataProva && new Date(e.dataProva) >= now)
+            .sort((a, b) => new Date(a.dataProva) - new Date(b.dataProva));
+        
+        const proximo = upcomingEditais.length > 0 ? upcomingEditais[0].nome : "Nenhum";
+
+        // 3. Update Stat Elements
+        this.safeSetText('dash-stat-materias', totalMaterias);
+        this.safeSetText('dash-stat-paginas', `${paginasLidas} / ${totalPaginas}`);
+        this.safeSetText('dash-stat-semanas', semanasAtivas);
+        this.safeSetText('dash-stat-proximo-edital', proximo);
+        this.safeSetText('dash-perc-concluido', `${percGeral}%`);
+        
+        const progressBar = document.getElementById('dash-progress-bar');
+        if (progressBar) progressBar.style.width = `${percGeral}%`;
+
+        // 4. Chart: Progresso por Materia
+        this.renderProgressoChart(materiais, cronograma);
+        
+        // 5. Chart: Timeline de Editais
+        this.renderEditaisChart(editais);
     },
 
-    concluirRevisao: function(id) {
-        if (window.spacedRepetition) {
-            window.spacedRepetition.concluirRevisao(id);
-            window.utils.showToast("Revisão concluída!", "success");
-            this.update();
-        }
+    safeSetText: function(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
     },
 
-    renderCharts: function(state) {
-        const canvas = document.getElementById('chart-dashboard-distrib');
+    renderProgressoChart: function(materiais, cronograma) {
+        const canvas = document.getElementById('chart-dash-progresso');
+        const emptyMsg = document.getElementById('chart-dash-empty-msg');
         if (!canvas) return;
 
-        if (this.chart) this.chart.destroy();
-        if (state.materias.length === 0) return;
+        if (this.chartProgresso) this.chartProgresso.destroy();
 
-        const dataArr = state.materias.map(m => {
-            return (state.cronograma || []).filter(i => i.materiaId === m.id).length;
+        if (materiais.length === 0) {
+            if (emptyMsg) emptyMsg.classList.remove('hidden');
+            return;
+        }
+        if (emptyMsg) emptyMsg.classList.add('hidden');
+
+        // Data: % of completion per subject
+        const data = materiais.map(m => {
+            const totalConteudos = (m.conteudos || []).length;
+            if (totalConteudos === 0) return 0;
+            const concluidos = cronograma.filter(i => i.materiaId === m.id && i.concluido).length;
+            return Math.round((concluidos / totalConteudos) * 100);
         });
 
-        this.chart = new Chart(canvas, {
+        const labels = materiais.map(m => m.nome);
+        const colors = [
+            '#253ee8', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#10b981', '#f59e0b', '#64748b'
+        ];
+
+        this.chartProgresso = new Chart(canvas, {
             type: 'doughnut',
             data: {
-                labels: state.materias.map(m => m.nome),
+                labels: labels,
                 datasets: [{
-                    data: dataArr,
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
+                    data: data,
+                    backgroundColor: colors,
                     borderWidth: 0,
-                    hoverOffset: 15
+                    hoverOffset: 10
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '75%',
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            font: { size: 9, weight: 'bold' }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => ` ${context.label}: ${context.raw}% concluído`
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    renderEditaisChart: function(editais) {
+        const canvas = document.getElementById('chart-dash-editais');
+        if (!canvas) return;
+
+        if (this.chartEditais) this.chartEditais.destroy();
+
+        // Group editais by month
+        const monthlyData = {};
+        const monthsNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        
+        editais.forEach(e => {
+            if (!e.dataProva) return;
+            const date = new Date(e.dataProva);
+            const key = `${monthsNames[date.getMonth()]}/${date.getFullYear().toString().slice(-2)}`;
+            monthlyData[key] = (monthlyData[key] || 0) + 1;
+        });
+
+        // Sort keys chronologically (simple heuristic for upcoming months)
+        const labels = Object.keys(monthlyData).sort((a,b) => {
+            const [mA, yA] = a.split('/');
+            const [mB, yB] = b.split('/');
+            if (yA !== yB) return yA - yB;
+            return monthsNames.indexOf(mA) - monthsNames.indexOf(mB);
+        });
+
+        const data = labels.map(l => monthlyData[l]);
+
+        this.chartEditais = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Concursos',
+                    data: data,
+                    backgroundColor: '#253ee8',
+                    borderRadius: 8,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { stepSize: 1, font: { size: 10, weight: 'bold' } },
+                        grid: { display: false }
+                    },
+                    x: { 
+                        ticks: { font: { size: 10, weight: 'bold' } },
+                        grid: { display: false }
+                    }
+                },
                 plugins: {
                     legend: { display: false }
                 }
