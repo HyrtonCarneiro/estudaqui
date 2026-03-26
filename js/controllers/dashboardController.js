@@ -13,19 +13,17 @@ window.dashboardController = {
         const editais = state.editais || [];
 
         // 1. Basic Stats
-        const totalMaterias = materiais.length;
+        const totalMaterias = materias.length;
         
-        let totalPaginas = 0;
-        materiais.forEach(m => {
-            (m.conteudos || []).forEach(c => {
-                totalPaginas += (Number(c.paginas) || 0);
-            });
-        });
+        // Total Pages from ALL conteudos
+        const totalPaginas = (state.conteudos || []).reduce((sum, c) => sum + (Number(c.paginas) || 0), 0);
 
+        // Pages Read from cronograma items marked as completed
         const paginasLidas = cronograma.filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
+        
         const percGeral = totalPaginas > 0 ? Math.round((paginasLidas / totalPaginas) * 100) : 0;
         
-        const semanasAtivas = new Set(cronograma.map(i => i.weekId)).size;
+        const semanasAtivas = new Set(cronograma.map(i => i.semana)).size; // weekId was wrong, it is 'semana'
 
         // 2. Proximo Edital
         const now = new Date();
@@ -58,6 +56,8 @@ window.dashboardController = {
     },
 
     renderProgressoChart: function(materiais, cronograma) {
+        const state = window.store.getState();
+        const conteudosSet = state.conteudos || [];
         const canvas = document.getElementById('chart-dash-progresso');
         const emptyMsg = document.getElementById('chart-dash-empty-msg');
         if (!canvas) return;
@@ -71,11 +71,19 @@ window.dashboardController = {
         if (emptyMsg) emptyMsg.classList.add('hidden');
 
         // Data: % of completion per subject
+        // For each subject, we calculate sum(completed pages in cronograma) / sum(total pages in conteudos)
         const data = materiais.map(m => {
-            const totalConteudos = (m.conteudos || []).length;
-            if (totalConteudos === 0) return 0;
-            const concluidos = cronograma.filter(i => i.materiaId === m.id && i.concluido).length;
-            return Math.round((concluidos / totalConteudos) * 100);
+            const totalPaginasMateria = conteudosSet
+                .filter(c => c.materiaId === m.id)
+                .reduce((sum, c) => sum + (Number(c.paginas) || 0), 0);
+            
+            if (totalPaginasMateria === 0) return 0;
+            
+            const lidoPaginasMateria = cronograma
+                .filter(i => i.materiaId === m.id && i.concluido)
+                .reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
+                
+            return Math.round((lidoPaginasMateria / totalPaginasMateria) * 100);
         });
 
         const labels = materiais.map(m => m.nome);
