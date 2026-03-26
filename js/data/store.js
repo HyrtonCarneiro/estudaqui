@@ -287,7 +287,10 @@ window.store = {
             delete dataToSave.editais;
         }
 
-        window.db.collection('users').doc(this.state.currentUser).set({
+        // Force standardization before saving
+        const finalUser = this.state.currentUser && this.state.currentUser.toLowerCase() === 'hyrton' ? 'Hyrton' : this.state.currentUser;
+
+        window.db.collection('users').doc(finalUser).set({
             state: dataToSave,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(err => {
@@ -343,9 +346,16 @@ window.store = {
         
         // Restore session from browser
         const isAuth = localStorage.getItem('auth_session') === 'true';
-        let savedUser = localStorage.getItem('auth_user'); // Fixed redeclaration
+        let savedUser = localStorage.getItem('auth_user');
         
-        this.state.isAuthenticated = isAuth;
+        // CLEANUP: Purge corrupted session strings
+        if (savedUser === 'undefined' || savedUser === 'null') {
+            savedUser = null;
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_session');
+        }
+        
+        this.state.isAuthenticated = isAuth && savedUser !== null;
         
         // EMERGENCY FIX: Standardize Hyrton casing
         if (savedUser && savedUser.toLowerCase() === 'hyrton') {
@@ -384,39 +394,6 @@ window.store = {
             if (doc.exists) {
                 let cloudData = doc.data().state;
                 
-                // --- Safe Migration Logic ---
-                if (this.isAdmin() && cloudData.editais && cloudData.editais.length > 0 && !cloudData.migratedToShared) {
-                    console.log("Migration: Attempting to move personal editais to shared...");
-                    window.db.collection('shared').doc('editais').get().then(sharedDoc => {
-                        const sharedData = sharedDoc.exists ? (sharedDoc.data().data || []) : [];
-                        
-                        // MERGE: Keep shared data and add personal data that doesn't exist yet
-                        const mergedData = [...sharedData];
-                        cloudData.editais.forEach(pEd => {
-                            if (!mergedData.find(sEd => sEd.nome.toLowerCase() === pEd.nome.toLowerCase())) {
-                                mergedData.push(pEd);
-                            }
-                        });
-
-                        window.db.collection('shared').doc('editais').set({ data: mergedData })
-                            .then(() => {
-                                console.log("Migration: SUCCESS!");
-                                window.utils.showToast("Editais migrados para a nuvem global!", "success");
-                                // Mark as migrated in personal state to stop using personal slot
-                                this.state.migratedToShared = true;
-                                this.save();
-                            })
-                            .catch(e => {
-                                console.error("Migration: FAILED (Permission?)", e);
-                                window.utils.showToast("Erro na migração: " + e.message, "error");
-                            });
-                    }).catch(e => console.error("Migration: Error reading shared doc", e));
-                }
-
-                if (cloudData.migratedToShared) {
-                    delete cloudData.editais; // Once migrated, personal slot is ignored
-                }
-
                 // Self-heal duplicate IDs in cronograma (common bug with Date.now() IDs)
                 if (cloudData && cloudData.cronograma) {
                     const seenIds = new Set();
@@ -430,15 +407,16 @@ window.store = {
 
                 // Merge cloud data into state
                 this.state = { ...this.state, ...cloudData, isAuthenticated: true, hasLoadedFromCloud: true };
-                console.log("Sync: Cloud data received and sanitized.");
+                console.log("Sync: Cloud data received. Materias:", (cloudData.materias || []).length);
             } else {
-                console.log("Sync: No remote data. Ready for updates.");
+                console.log("Sync: Document not found or empty.");
             }
             this.hideLoading();
             this.triggerUIRefresh();
         }, (err) => {
             console.error("Firestore Sync Error:", err);
             this.hideLoading();
+            this.triggerUIRefresh(); // Still try to refresh to show local state
         });
     },
 
@@ -524,8 +502,8 @@ window.store = {
     // --- Page Nav Trigger ---
     triggerUIRefresh: function() {
         if (window.appControllers) {
-            window.appControllers.checkAuth();
-            window.appControllers.updateDashboard();
+            try { window.appControllers.checkAuth(); } catch(e) { console.error("Refresh Error (Auth):", e); }
+            try { window.appControllers.updateDashboard(); } catch(e) { console.error("Refresh Error (Dash):", e); }
             
             if (this.state.isAuthenticated) {
                 if (window.editaisController) try { window.editaisController.render(); } catch(e){}

@@ -2,8 +2,12 @@ window.appControllers = {
     currentPage: null,
 
     init: function() {
-        this.checkAuth();
-        this.bindEvents();
+        try {
+            this.bindEvents();
+            this.checkAuth();
+        } catch (e) {
+            console.error("AppController: Init failed", e);
+        }
     },
 
     checkAuth: function() {
@@ -83,7 +87,7 @@ window.appControllers = {
         }
         
         // Update nav buttons styling
-        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'simulados', 'metas', 'admin'];
+        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'simulados', 'metas', 'admin', 'links'];
         navs.forEach(nav => {
             const btn = document.getElementById('nav-' + nav);
             if (btn) {
@@ -122,18 +126,25 @@ window.appControllers = {
         if (pageId === 'admin') {
             if (window.adminController) window.adminController.render();
         }
+        if (pageId === 'links') {
+            if (window.linksController) window.linksController.render();
+        }
     },
 
     updateDashboard: function() {
         const state = window.store.getState();
-        const totalPaginas = (state.cronograma || []).filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
         
         if (window.dashboardController) {
-            window.dashboardController.update();
+            try {
+                window.dashboardController.update();
+            } catch (e) {
+                console.error("DashboardController Error:", e);
+            }
         } else {
             // Fallback to basic if not loaded
             const totalMaterias = state.materias.length;
             const totalPlan = (state.cronograma || []).length;
+            const totalPaginasLidas = (state.cronograma || []).filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
 
             const elMaterias = document.getElementById('dash-total-materias');
             const elConteudos = document.getElementById('dash-total-conteudos');
@@ -141,7 +152,7 @@ window.appControllers = {
 
             if (elMaterias) elMaterias.textContent = totalMaterias;
             if (elConteudos) elConteudos.textContent = totalPlan;
-            if (elPaginas) elPaginas.textContent = totalPaginas;
+            if (elPaginas) elPaginas.textContent = totalPaginasLidas;
         }
     },
 

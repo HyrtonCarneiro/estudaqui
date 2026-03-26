@@ -3,12 +3,12 @@ window.dashboardController = {
     chartEditais: null,
 
     init: function() {
-        // This will be called by appController or main.js
+        // Initialization if needed
     },
 
     update: function() {
         const state = window.store.getState();
-        const materiais = state.materiais || [];
+        const materias = state.materias || [];
         const cronograma = state.cronograma || [];
         const editais = state.editais || [];
 
@@ -16,14 +16,15 @@ window.dashboardController = {
         const totalMaterias = materias.length;
         
         // Total Pages from ALL conteudos
-        const totalPaginas = (state.conteudos || []).reduce((sum, c) => sum + (Number(c.paginas) || 0), 0);
+        const conteudosSet = state.conteudos || [];
+        const totalPaginas = conteudosSet.reduce((sum, c) => sum + (Number(c.paginas) || 0), 0);
 
         // Pages Read from cronograma items marked as completed
         const paginasLidas = cronograma.filter(i => i.concluido).reduce((sum, i) => sum + (Number(i.paginas) || 0), 0);
         
         const percGeral = totalPaginas > 0 ? Math.round((paginasLidas / totalPaginas) * 100) : 0;
         
-        const semanasAtivas = new Set(cronograma.map(i => i.semana)).size; // weekId was wrong, it is 'semana'
+        const semanasAtivas = (cronograma && cronograma.length > 0) ? new Set(cronograma.map(i => i.semana)).size : 0;
 
         // 2. Proximo Edital
         const now = new Date();
@@ -44,7 +45,7 @@ window.dashboardController = {
         if (progressBar) progressBar.style.width = `${percGeral}%`;
 
         // 4. Chart: Progresso por Materia
-        this.renderProgressoChart(materiais, cronograma);
+        this.renderProgressoChart(materias, cronograma);
         
         // 5. Chart: Timeline de Editais
         this.renderEditaisChart(editais);
@@ -55,7 +56,11 @@ window.dashboardController = {
         if (el) el.textContent = text;
     },
 
-    renderProgressoChart: function(materiais, cronograma) {
+    renderProgressoChart: function(materias, cronograma) {
+        if (typeof Chart === 'undefined') {
+            console.warn("Dashboard: Chart.js not loaded yet.");
+            return;
+        }
         const state = window.store.getState();
         const conteudosSet = state.conteudos || [];
         const canvas = document.getElementById('chart-dash-progresso');
@@ -64,15 +69,14 @@ window.dashboardController = {
 
         if (this.chartProgresso) this.chartProgresso.destroy();
 
-        if (materiais.length === 0) {
+        if (materias.length === 0) {
             if (emptyMsg) emptyMsg.classList.remove('hidden');
             return;
         }
         if (emptyMsg) emptyMsg.classList.add('hidden');
 
         // Data: % of completion per subject
-        // For each subject, we calculate sum(completed pages in cronograma) / sum(total pages in conteudos)
-        const data = materiais.map(m => {
+        const data = materias.map(m => {
             const totalPaginasMateria = conteudosSet
                 .filter(c => c.materiaId === m.id)
                 .reduce((sum, c) => sum + (Number(c.paginas) || 0), 0);
@@ -86,10 +90,8 @@ window.dashboardController = {
             return Math.round((lidoPaginasMateria / totalPaginasMateria) * 100);
         });
 
-        const labels = materiais.map(m => m.nome);
-        const colors = [
-            '#253ee8', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#10b981', '#f59e0b', '#64748b'
-        ];
+        const labels = materias.map(m => m.nome);
+        const colors = ['#253ee8', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#10b981', '#f59e0b', '#64748b'];
 
         this.chartProgresso = new Chart(canvas, {
             type: 'doughnut',
@@ -109,15 +111,10 @@ window.dashboardController = {
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            font: { size: 9, weight: 'bold' }
-                        }
+                        labels: { usePointStyle: true, font: { size: 9, weight: 'bold' } }
                     },
                     tooltip: {
-                        callbacks: {
-                            label: (context) => ` ${context.label}: ${context.raw}% concluído`
-                        }
+                        callbacks: { label: (context) => ` ${context.label}: ${context.raw}% concluído` }
                     }
                 }
             }
@@ -125,12 +122,12 @@ window.dashboardController = {
     },
 
     renderEditaisChart: function(editais) {
+        if (typeof Chart === 'undefined') return;
         const canvas = document.getElementById('chart-dash-editais');
         if (!canvas) return;
 
         if (this.chartEditais) this.chartEditais.destroy();
 
-        // Group editais by month
         const monthlyData = {};
         const monthsNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
         
@@ -141,7 +138,6 @@ window.dashboardController = {
             monthlyData[key] = (monthlyData[key] || 0) + 1;
         });
 
-        // Sort keys chronologically (simple heuristic for upcoming months)
         const labels = Object.keys(monthlyData).sort((a,b) => {
             const [mA, yA] = a.split('/');
             const [mB, yB] = b.split('/');
@@ -167,15 +163,8 @@ window.dashboardController = {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        ticks: { stepSize: 1, font: { size: 10, weight: 'bold' } },
-                        grid: { display: false }
-                    },
-                    x: { 
-                        ticks: { font: { size: 10, weight: 'bold' } },
-                        grid: { display: false }
-                    }
+                    y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10, weight: 'bold' } }, grid: { display: false } },
+                    x: { ticks: { font: { size: 10, weight: 'bold' } }, grid: { display: false } }
                 },
                 plugins: {
                     legend: { display: false }

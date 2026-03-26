@@ -7,7 +7,7 @@ window.authLogic = {
         try {
             // Initial Fallback for Hyrton if Firestore is not yet seeded or offline
             if (userLower === 'hyrton' && password === 'hyrtinho') {
-                return true;
+                return { username: 'Hyrton' };
             }
 
             // Fetch central user list from Firestore
