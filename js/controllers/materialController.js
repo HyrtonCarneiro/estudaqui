@@ -45,7 +45,7 @@ window.materialController = {
                         <div> \
                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Links de Estudo</label> \
                             <div class="flex flex-wrap gap-2 mb-2" id="links-' + c.id + '"> \
-                                ' + this.renderLinks(material.links) + ' \
+                                ' + this.renderLinks(c.id, material.links) + ' \
                                 <button onclick="window.materialController.addLink(\'' + c.id + '\')" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 hover:bg-primary-600 hover:text-white flex items-center justify-center transition-all"> \
                                     <i class="ph ph-plus-bold"></i> \
                                 </button> \
@@ -64,12 +64,26 @@ window.materialController = {
         });
     },
 
-    renderLinks: function(links) {
+    renderLinks: function(conteudoId, links) {
         if (!links || links.length === 0) return "";
-        return links.map(link => ' \
-            <a href="' + link + '" target="_blank" class="px-3 py-1 bg-primary-50 text-primary-600 text-xs font-medium rounded-full hover:bg-primary-100 transition-colors flex items-center gap-1"> \
-                <i class="ph ph-link"></i> Link \
-            </a>').join("");
+        return links.map((link, index) => `
+            <div class="flex items-center gap-1 bg-primary-50 pl-3 pr-1 py-1 rounded-full group/link">
+                <a href="${link}" target="_blank" class="text-primary-600 text-xs font-medium hover:underline flex items-center gap-1">
+                    <i class="ph ph-link"></i> Link
+                </a>
+                <button onclick="window.materialController.removeLink('${conteudoId}', ${index})" class="w-6 h-6 flex items-center justify-center text-primary-300 hover:text-red-500 transition-colors opacity-0 group-hover/link:opacity-100">
+                    <i class="ph ph-x-circle text-sm"></i>
+                </button>
+            </div>
+        `).join("");
+    },
+
+    removeLink: function(conteudoId, index) {
+        const material = window.store.getMaterial(conteudoId);
+        material.links.splice(index, 1);
+        window.store.updateMaterial(conteudoId, material.links, material.notas);
+        this.render();
+        window.utils.showToast("Link removido.", "info");
     },
 
     addLink: function(conteudoId) {

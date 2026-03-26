@@ -30,12 +30,40 @@ window.store = {
         return id;
     },
 
+    updateMateria: function(id, nome) {
+        const materia = this.state.materias.find(m => m.id === id);
+        if (materia) {
+            materia.nome = nome;
+            this.save();
+        }
+    },
+
+    removeMateria: function(id) {
+        // Warning: Also should remove associated contents
+        this.state.materias = this.state.materias.filter(m => m.id !== id);
+        this.state.conteudos = this.state.conteudos.filter(c => c.materiaId !== id);
+        this.save();
+    },
+
     addConteudo: function(materiaId, nome, paginas) {
         if (!materiaId || !nome) throw new Error("Matéria e conteúdo são obrigatórios");
         const id = 'c' + Date.now();
         this.state.conteudos.push({ id, materiaId, nome, paginas: Number(paginas) || 0 });
         this.save();
         return id;
+    },
+
+    updateConteudo: function(id, data) {
+        const index = this.state.conteudos.findIndex(c => c.id === id);
+        if (index !== -1) {
+            this.state.conteudos[index] = { ...this.state.conteudos[index], ...data, paginas: Number(data.paginas) || 0 };
+            this.save();
+        }
+    },
+
+    removeConteudo: function(id) {
+        this.state.conteudos = this.state.conteudos.filter(c => c.id !== id);
+        this.save();
     },
 
     getConteudosPorMateria: function(materiaId) {
@@ -116,6 +144,20 @@ window.store = {
         this.state.simulados.push(simulado);
         this.save();
         return simulado;
+    },
+
+    updateSimulado: function(id, data) {
+        const simulado = this.state.simulados.find(s => s.id === id);
+        if (simulado) {
+            if (data.nome) simulado.nome = data.nome;
+            if (data.nota !== undefined) simulado.nota = parseFloat(data.nota);
+            this.save();
+        }
+    },
+
+    removeSimulado: function(id) {
+        this.state.simulados = this.state.simulados.filter(s => s.id !== id);
+        this.save();
     },
 
     updateMaterial: function(conteudoId, links, notas) {
@@ -258,7 +300,10 @@ window.store = {
             if (this.state.isAuthenticated) {
                 if (window.editaisController) try { window.editaisController.render(); } catch(e){}
                 if (window.cronogramaController) try { window.cronogramaController.renderTable(); } catch(e){}
-                if (window.cadastrosController) try { window.cadastrosController.renderMateriasSelect(); } catch(e){}
+                if (window.cadastrosController) try { 
+                    window.cadastrosController.renderMateriasSelect(); 
+                    window.cadastrosController.renderLists();
+                } catch(e){}
                 if (window.materialController) try { window.materialController.render(); } catch(e){}
                 if (window.simuladosController) try { window.simuladosController.render(); } catch(e){}
                 if (window.gamificationController) try { window.gamificationController.render(); } catch(e){}

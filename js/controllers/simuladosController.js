@@ -52,15 +52,43 @@ window.simuladosController = {
         simulados.slice().reverse().forEach(s => {
             const date = new Date(s.data).toLocaleDateString();
             const div = document.createElement('div');
-            div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100';
-            div.innerHTML = ' \
-                <div> \
-                    <p class="text-sm font-bold text-gray-800">' + s.nome + '</p> \
-                    <p class="text-[10px] text-gray-500 uppercase">' + date + '</p> \
-                </div> \
-                <span class="text-lg font-black text-primary-600">' + s.nota + '%</span>';
+            div.className = 'flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-primary-100 transition-all group';
+            div.innerHTML = `
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-800">${s.nome}</p>
+                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-widest">${date}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-lg font-black text-primary-600">${s.nota}%</span>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="window.simuladosController.handleEditar('${s.id}')" class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><i class="ph ph-pencil-simple"></i></button>
+                        <button onclick="window.simuladosController.handleRemover('${s.id}')" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><i class="ph ph-trash"></i></button>
+                    </div>
+                </div>
+            `;
             this.listEl.appendChild(div);
         });
+    },
+
+    handleEditar: function(id) {
+        const s = window.store.getState().simulados.find(sim => sim.id === id);
+        if (!s) return;
+        const novoNome = prompt("Novo nome:", s.nome);
+        if (novoNome === null) return;
+        const novaNota = prompt("Nova nota (%):", s.nota);
+        if (novaNota === null) return;
+        
+        window.store.updateSimulado(id, { nome: novoNome, nota: novaNota });
+        window.utils.showToast("Simulado atualizado!", "success");
+        this.render();
+    },
+
+    handleRemover: function(id) {
+        if (confirm("Deseja remover este simulado?")) {
+            window.store.removeSimulado(id);
+            window.utils.showToast("Simulado removido.", "info");
+            this.render();
+        }
     },
 
     renderChart: function() {
