@@ -248,7 +248,7 @@ window.store = {
         // Clean any undefined values (Firestore fails on them)
         const dataToSave = this.cleanData(this.state);
         delete dataToSave.userList; // Don't save central user list into personal doc
-        delete dataToSave.editais;  // Don't save shared editais into personal doc
+        // delete dataToSave.editais;  // TEMP: Stop deleting to see if data recurs
 
         window.db.collection('users').doc(this.state.currentUser).set({
             state: dataToSave,
@@ -332,14 +332,12 @@ window.store = {
             if (doc.exists) {
                 let cloudData = doc.data().state;
                 
-                // --- Migration Logic ---
-                // If we have personal editais and shared ones are not yet loaded or empty
-                if (cloudData.editais && cloudData.editais.length > 0 && this.state.editais.length === 0) {
-                    console.log("Migration: Moving personal editais to shared...");
-                    window.db.collection('shared').doc('editais').set({ data: cloudData.editais });
-                }
+                // if (cloudData.editais && cloudData.editais.length > 0 && this.state.editais.length === 0) {
+                //     console.log("Migration: Moving personal editais to shared...");
+                //     window.db.collection('shared').doc('editais').set({ data: cloudData.editais });
+                // }
 
-                delete cloudData.editais; // Force use of shared data even if old data exists
+                // delete cloudData.editais; // TEMP: Stop deleting to help recovery
 
                 // Self-heal duplicate IDs in cronograma (common bug with Date.now() IDs)
                 if (cloudData && cloudData.cronograma) {
