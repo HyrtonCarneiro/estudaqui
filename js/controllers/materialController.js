@@ -126,9 +126,9 @@ window.materialController = {
                         <div class="flex gap-1.5">${linksIcons}</div>
                     </div>
                     
-                    <h4 class="font-black text-gray-900 mb-4 text-base leading-tight">${m.nome}</h4>
+                    <h4 class="font-black text-gray-900 mb-2 text-base leading-tight">${m.nome}</h4>
                     
-                    <div class="flex items-center gap-4 mb-6">
+                    <div class="flex items-center gap-4 mb-4">
                         <div class="flex items-center gap-1.5">
                             <i class="ph ph-article text-gray-300"></i>
                             <span class="text-[10px] font-bold text-gray-500">${material.links.length} Recursos</span>
@@ -139,6 +139,21 @@ window.materialController = {
                                 <span class="text-[10px] font-bold text-primary-500">Com Anotações</span>
                             </div>
                         ` : ''}
+                    </div>
+
+                    <div class="space-y-1.5 mb-6">
+                        ${material.links.slice(0, 3).map(l => {
+                            const isLocal = /^[a-zA-Z]:[\\\/]/.test(l);
+                            const finalHref = isLocal ? `abrir-pasta:${l}` : l;
+                            const icon = getIcon(l);
+                            return `
+                                <a href="${finalHref}" ${isLocal ? '' : 'target="_blank"'} class="flex items-center gap-2 text-[10px] font-bold text-gray-600 hover:text-primary-600 truncate bg-gray-50/50 p-2 rounded-xl border border-gray-100/50 hover:border-primary-200 transition-all">
+                                    <i class="ph ${icon}"></i> 
+                                    ${l.replace('https://', '').replace('http://', '').substring(0, 40)}
+                                </a>
+                            `;
+                        }).join('')}
+                        ${material.links.length === 0 ? '<p class="text-[10px] text-gray-300 italic py-2">Nenhum recurso salvo.</p>' : ''}
                     </div>
 
                     <button onclick="window.materialController.abrirModal('${m.id}')" class="w-full py-3.5 bg-primary-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-primary-100">
@@ -192,12 +207,36 @@ window.materialController = {
                     <a href="${finalHref}" ${isLocal ? '' : 'target="_blank"'} class="text-xs font-bold text-gray-700 hover:text-primary-600 truncate flex-1 flex items-center gap-3 pr-4">
                         <i class="${icon}"></i> ${l}
                     </a>
-                    <button onclick="window.materialController.removeLink(${idx})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-95">
-                        <i class="ph-bold ph-trash"></i>
-                    </button>
+                    <div class="flex gap-1">
+                        <button onclick="window.materialController.moveLink(${idx}, 'up')" ${idx === 0 ? 'disabled' : ''} class="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 rounded-xl hover:bg-primary-50 hover:text-primary-600 disabled:opacity-20 transition-all">
+                            <i class="ph-bold ph-caret-up"></i>
+                        </button>
+                        <button onclick="window.materialController.moveLink(${idx}, 'down')" ${idx === links.length - 1 ? 'disabled' : ''} class="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 rounded-xl hover:bg-primary-50 hover:text-primary-600 disabled:opacity-20 transition-all">
+                            <i class="ph-bold ph-caret-down"></i>
+                        </button>
+                        <button onclick="window.materialController.removeLink(${idx})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-95">
+                            <i class="ph-bold ph-trash"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
+    },
+
+    moveLink: function(index, direction) {
+        const materiaId = this.inputId.value;
+        const material = window.store.getMaterial(materiaId);
+        const newLinks = [...material.links];
+        
+        if (direction === 'up' && index > 0) {
+            [newLinks[index], newLinks[index - 1]] = [newLinks[index - 1], newLinks[index]];
+        } else if (direction === 'down' && index < newLinks.length - 1) {
+            [newLinks[index], newLinks[index + 1]] = [newLinks[index + 1], newLinks[index]];
+        }
+
+        window.store.updateMaterial(materiaId, newLinks, material.notas);
+        this.renderModalLinks(newLinks);
+        this.renderGrid();
     },
 
     handleAddLink: function() {
