@@ -81,6 +81,9 @@
 
     <!-- Quill Editor (CDN) -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+    <!-- App Configuration -->
+    <script src="js/config/settings.js"></script>
 </head>
 <body class="bg-background text-gray-800 font-sans min-h-screen selection:bg-primary-100 selection:text-primary-700">
     <!-- Loading Overlay -->
@@ -114,7 +117,7 @@
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Seu Usuário</label>
                     <div class="relative">
                         <i class="ph ph-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl"></i>
-                        <input type="text" id="input-username" class="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all placeholder:text-gray-300" placeholder="Hyrton" autocomplete="username">
+                        <input type="text" id="input-username" class="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all placeholder:text-gray-300" placeholder="Seu usuário" autocomplete="username">
                     </div>
                 </div>
                 <div class="space-y-2">
@@ -262,7 +265,7 @@
                             <h3 class="text-2xl font-black mb-2 tracking-tight">Rumo à sua Aprovação!</h3>
                             <p class="text-gray-400 text-sm max-w-xl">Continue mantendo sua constância nos estudos. O sucesso é a soma de pequenos esforços repetidos dia após dia.</p>
                         </div>
-                        <button onclick="window.appControllers.navigate('cronograma')" class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-500 hover:text-white transition-all shadow-xl active:scale-95">Ver Meul Cronograma</button>
+                        <button onclick="window.appControllers.navigate('cronograma')" class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-500 hover:text-white transition-all shadow-xl active:scale-95">Ver Meu Cronograma</button>
                     </div>
                 </div>
             </section>

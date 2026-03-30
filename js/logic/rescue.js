@@ -4,7 +4,10 @@
 // that logs the RAW document data to the console on next load.
 
 window.store.rescueEditais = function() {
-    window.db.collection('users').doc('hyrton').get().then(doc => {
+    const settings = window.PLATFORM_SETTINGS;
+    const userId = (window.store.state.currentUser || settings.DEFAULT_ADMIN_USER).toLowerCase();
+    
+    window.db.collection(settings.USERS_COLLECTION).doc(userId).get().then(doc => {
         if (doc.exists) {
             console.log("RESCUE DATA:", JSON.stringify(doc.data()));
             const data = doc.data();

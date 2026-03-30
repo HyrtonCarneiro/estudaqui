@@ -288,11 +288,13 @@ window.store = {
             delete dataToSave.editais;
         }
 
-        // Force standardization before saving
-        const finalUser = this.state.currentUser && this.state.currentUser.toLowerCase() === 'hyrton' ? 'Hyrton' : this.state.currentUser;
+        // Standardize User ID for Firestore (Always lowercase)
+        const normalizedUser = this.state.currentUser.toLowerCase();
+        const settings = window.PLATFORM_SETTINGS;
 
-        window.db.collection('users').doc(finalUser).set({
+        window.db.collection(settings.USERS_COLLECTION).doc(normalizedUser).set({
             state: dataToSave,
+            displayName: this.state.displayName || this.state.currentUser,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(err => {
             console.error("Firestore Save Error:", err);
@@ -306,12 +308,21 @@ window.store = {
         } catch(e) {}
     },
 
-    setAuth: function(val, username) {
+    setAuth: function(val, user) {
         this.state.isAuthenticated = val;
-        this.state.currentUser = username || null;
-        if (val) {
+        
+        if (val && user) {
+            // Standardize username to lowercase for storage, but keep display name
+            const username = user.username || user; // compatible with both string and object
+            const normalized = username.toLowerCase();
+            
+            this.state.currentUser = normalized;
+            this.state.displayName = user.displayName || username;
+            
             localStorage.setItem('auth_session', 'true');
-            localStorage.setItem('auth_user', username);
+            localStorage.setItem('auth_user', normalized);
+            localStorage.setItem('auth_display', this.state.displayName);
+            
             this.initSync(); // Start syncing personal data
             this.syncSharedEditais(); // Start syncing global data
             this.syncUserList();     // Start syncing user list (for admin)
@@ -322,6 +333,7 @@ window.store = {
             this.state = {
                 isAuthenticated: false,
                 currentUser: null,
+                displayName: null,
                 userList: [],
                 materias: [],
                 conteudos: [],
@@ -358,16 +370,10 @@ window.store = {
         }
         
         this.state.isAuthenticated = isAuth && savedUser !== null;
-        
-        // EMERGENCY FIX: Standardize Hyrton casing
-        if (savedUser && savedUser.toLowerCase() === 'hyrton') {
-            savedUser = 'Hyrton';
-            localStorage.setItem('auth_user', 'Hyrton');
-        }
-        
-        this.state.currentUser = savedUser;
+        this.state.currentUser = savedUser ? savedUser.toLowerCase() : null;
+        this.state.displayName = localStorage.getItem('auth_display') || this.state.currentUser;
 
-        if (isAuth && savedUser) {
+        if (isAuth && this.state.currentUser) {
             this.initSync();
             this.syncSharedEditais(); // Start shared editais sync
         } else {
@@ -384,19 +390,20 @@ window.store = {
     initSync: function() {
         if (!window.db || !this.state.currentUser) return;
         
-        // Standardize casing for Firestore document ID
-        if (this.state.currentUser.toLowerCase() === 'hyrton') {
-            this.state.currentUser = 'Hyrton';
-        }
+        const settings = window.PLATFORM_SETTINGS;
+        const normalizedUser = this.state.currentUser.toLowerCase();
         
-        console.log(`Syncing for user: ${this.state.currentUser}`);
+        console.log(`Syncing for user: ${normalizedUser}`);
         if (this.unsubscribeFirestore) this.unsubscribeFirestore();
         
-        this.unsubscribeFirestore = window.db.collection('users').doc(this.state.currentUser).onSnapshot((doc) => {
+        this.unsubscribeFirestore = window.db.collection(settings.USERS_COLLECTION).doc(normalizedUser).onSnapshot((doc) => {
             if (doc.exists) {
                 let cloudData = doc.data().state;
+                let displayName = doc.data().displayName;
                 
-                // Self-heal duplicate IDs in cronograma (common bug with Date.now() IDs)
+                if (displayName) this.state.displayName = displayName;
+                
+                // Self-heal duplicate IDs
                 if (cloudData && cloudData.cronograma) {
                     const seenIds = new Set();
                     cloudData.cronograma.forEach(item => {
@@ -409,35 +416,36 @@ window.store = {
 
                 // Merge cloud data into state
                 this.state = { ...this.state, ...cloudData, isAuthenticated: true, hasLoadedFromCloud: true };
-                console.log("Sync: Cloud data received. Materias:", (cloudData.materias || []).length);
+                console.log("Sync: Cloud data received.");
             } else {
-                console.warn(`Sync: Document [${this.state.currentUser}] not found or empty. Checking for legacy casing...`);
+                console.warn(`Sync: Document [${normalizedUser}] not found. Checking for legacy casing...`);
                 
-                // --- EMERGENCY RECOVERY BRIDGE ---
-                // If we are looking for 'Hyrton' but it's empty, check 'hyrton' once
-                if (this.state.currentUser === 'Hyrton') {
-                    window.db.collection('users').doc('hyrton').get().then(legacyDoc => {
-                        if (legacyDoc.exists && legacyDoc.data().state) {
-                            console.log("RECOVERY: Found legacy data in 'hyrton'! Migrating to 'Hyrton'...");
-                            const legacyData = legacyDoc.data().state;
-                            this.state = { ...this.state, ...legacyData, isAuthenticated: true, hasLoadedFromCloud: true };
-                            this.save(); // This will write it to 'Hyrton'
-                            window.utils.showToast("Dados recuperados com sucesso!", "success");
-                        } else {
-                            console.log("RECOVERY: No legacy data found in 'hyrton' either.");
-                            this.state.hasLoadedFromCloud = true; // Allow updates even if empty
-                        }
-                    }).catch(err => console.error("RECOVERY: Error checking legacy doc", err));
-                } else {
+                // --- GENERIC RECOVERY BRIDGE ---
+                // If it's the first time and we lack the lowercase doc, check the capitalized one
+                const legacyUser = normalizedUser.charAt(0).toUpperCase() + normalizedUser.slice(1);
+                
+                window.db.collection(settings.USERS_COLLECTION).doc(legacyUser).get().then(legacyDoc => {
+                    if (legacyDoc.exists && legacyDoc.data().state) {
+                        console.log(`RECOVERY: Found legacy data in [${legacyUser}]! Migrating to [${normalizedUser}]...`);
+                        const legacyData = legacyDoc.data().state;
+                        this.state = { ...this.state, ...legacyData, isAuthenticated: true, hasLoadedFromCloud: true };
+                        this.save(); // Migrate to lowercase doc
+                        window.utils.showToast("Dados migrados com sucesso!", "success");
+                    } else {
+                        console.log("RECOVERY: No legacy data found.");
+                        this.state.hasLoadedFromCloud = true;
+                    }
+                }).catch(err => {
+                    console.error("RECOVERY Error:", err);
                     this.state.hasLoadedFromCloud = true;
-                }
+                });
             }
             this.hideLoading();
             this.triggerUIRefresh();
         }, (err) => {
             console.error("Firestore Sync Error:", err);
             this.hideLoading();
-            this.triggerUIRefresh(); // Still try to refresh to show local state
+            this.triggerUIRefresh();
         });
     },
 
@@ -449,52 +457,73 @@ window.store = {
     },
 
     isAdmin: function() {
-        return this.state.currentUser && this.state.currentUser.toLowerCase() === 'hyrton';
+        if (!this.state.currentUser) return false;
+        
+        // Superadmin is either defined by role or by the configured default admin username
+        const settings = window.PLATFORM_SETTINGS;
+        const normalizedUser = this.state.currentUser.toLowerCase();
+        
+        if (normalizedUser === settings.DEFAULT_ADMIN_USER) return true;
+        
+        // Also check if role is set in the user list
+        const user = this.state.userList.find(u => u.username.toLowerCase() === normalizedUser);
+        return user && (user.role === settings.ROLES.SUPERADMIN || user.role === settings.ROLES.ADMIN);
     },
 
     syncUserList: function() {
         if (!window.db) return;
-        window.db.collection('users').doc('_admin_').onSnapshot((doc) => {
+        const settings = window.PLATFORM_SETTINGS;
+
+        window.db.collection(settings.USERS_COLLECTION).doc(settings.SYSTEM_USER_DOC).onSnapshot((doc) => {
             if (doc.exists) {
-                let list = doc.data().userList || [];
-                // Auto-fix: Ensure 'Hyrton' is capitalized if it was seeded as 'hyrton'
-                list = list.map(u => {
-                    if (u.username.toLowerCase() === 'hyrton' && u.username === 'hyrton') {
-                        return { ...u, username: 'Hyrton' };
-                    }
-                    return u;
-                });
-                this.state.userList = list;
+                this.state.userList = doc.data().userList || [];
             } else {
-                // Seed with Hyrton if list is empty
-                const initialList = [{ username: 'Hyrton', password: 'hyrtinho' }];
-                window.db.collection('users').doc('_admin_').set({ userList: initialList });
+                // Seed with Default Admin
+                const initialList = [{ 
+                    username: settings.DEFAULT_ADMIN_USER, 
+                    password: settings.DEFAULT_ADMIN_PASSWORD,
+                    displayName: settings.DEFAULT_ADMIN_DISPLAY_NAME,
+                    role: settings.ROLES.SUPERADMIN 
+                }];
+                window.db.collection(settings.USERS_COLLECTION).doc(settings.SYSTEM_USER_DOC).set({ userList: initialList });
                 this.state.userList = initialList;
             }
             this.triggerUIRefresh();
         });
     },
 
-    createUser: function(username, password) {
+    createUser: function(username, password, displayName, role) {
         if (!this.isAdmin()) throw new Error("Ação permitida apenas para administradores");
         
+        const settings = window.PLATFORM_SETTINGS;
         const usernameTrimmed = username.trim();
         if (this.state.userList.find(u => u.username.toLowerCase() === usernameTrimmed.toLowerCase())) {
             throw new Error("Usuário já existe");
         }
         
-        const newList = [...this.state.userList, { username: usernameTrimmed, password }];
-        return window.db.collection('users').doc('_admin_').update({
+        const newUser = { 
+            username: usernameTrimmed, 
+            password, 
+            displayName: displayName || usernameTrimmed,
+            role: role || settings.ROLES.USER 
+        };
+        
+        const newList = [...this.state.userList, newUser];
+        return window.db.collection(settings.USERS_COLLECTION).doc(settings.SYSTEM_USER_DOC).update({
             userList: newList
         });
     },
 
     deleteUser: function(username) {
         if (!this.isAdmin()) throw new Error("Ação permitida apenas para administradores");
-        if (username === 'hyrton') throw new Error("Não é possível deletar o superadmin");
+        
+        const settings = window.PLATFORM_SETTINGS;
+        if (username.toLowerCase() === settings.DEFAULT_ADMIN_USER) {
+            throw new Error("Não é possível deletar o superadmin raiz");
+        }
         
         const newList = this.state.userList.filter(u => u.username !== username);
-        return window.db.collection('users').doc('_admin_').update({
+        return window.db.collection(settings.USERS_COLLECTION).doc(settings.SYSTEM_USER_DOC).update({
             userList: newList
         });
     },

@@ -49,7 +49,8 @@ async function handleRoute() {
 function renderAppShell(currentPath) {
     const root = document.getElementById('root');
     const projectTitle = "Enem 2024";
-    const userName = "Hyrton Carneiro";
+    const state = (window.store && window.store.getState) ? window.store.getState() : {};
+    const userName = state.displayName || state.currentUser || "Usuário";
 
     root.innerHTML = `
         ${Sidebar(currentPath)}

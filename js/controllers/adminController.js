@@ -38,6 +38,7 @@ window.adminController = {
     render: function() {
         if (!this.userListContainer) return;
         
+        const settings = window.PLATFORM_SETTINGS;
         const users = window.store.getState().userList || [];
         
         if (users.length === 0) {
@@ -49,27 +50,36 @@ window.adminController = {
             return;
         }
 
-        this.userListContainer.innerHTML = users.map(u => `
+        this.userListContainer.innerHTML = users.map(u => {
+            const isRoot = u.username.toLowerCase() === settings.DEFAULT_ADMIN_USER;
+            const roleLabel = u.role === settings.ROLES.SUPERADMIN ? 'Superadmin' : 
+                             (u.role === settings.ROLES.ADMIN ? 'Admin' : 'Estudante');
+            
+            return `
             <tr class="hover:bg-gray-50/50 transition-colors">
                 <td class="py-4 text-sm font-bold text-gray-700">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 text-[10px] font-black">
                             ${u.username.substring(0, 2).toUpperCase()}
                         </div>
-                        ${u.username}
-                        ${u.username === 'hyrton' ? '<span class="text-[8px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest">Admin</span>' : ''}
+                        <div class="flex flex-col">
+                            <span>${u.displayName || u.username}</span>
+                            <span class="text-[9px] text-gray-400 font-medium">@${u.username}</span>
+                        </div>
+                        <span class="text-[8px] ${isRoot ? 'bg-primary-600 text-white' : 'bg-primary-100 text-primary-700'} px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest">${roleLabel}</span>
                     </div>
                 </td>
                 <td class="py-4 text-xs font-mono text-gray-400">••••••••</td>
                 <td class="py-4 text-right">
-                    ${u.username !== 'hyrton' ? `
-                        <button onclick="window.adminController.deleteUser('${u.username}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95 flex items-center justify-center ml-auto">
+                    ${!isRoot ? `
+                        <button onclick="window.adminController.deleteUser('${u.username}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-[0.95] flex items-center justify-center ml-auto">
                             <i class="ph-bold ph-trash"></i>
                         </button>
-                    ` : '-'}
+                    ` : '<i class="ph ph-lock text-gray-200"></i>'}
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     },
 
     deleteUser: async function(username) {
