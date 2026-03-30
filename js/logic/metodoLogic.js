@@ -5,10 +5,10 @@ window.metodoLogic = {
      */
     async loadMetodo() {
         const state = window.store.getState();
-        if (!state.user) return {};
+        if (!state.currentUser) return {};
 
         try {
-            const doc = await window.db.collection('users').doc(state.user).collection('data').doc('metodo').get();
+            const doc = await window.db.collection('users').doc(state.currentUser).collection('data').doc('metodo').get();
             if (doc.exists) {
                 const data = doc.data().content;
                 
@@ -32,10 +32,10 @@ window.metodoLogic = {
      */
     async saveMetodo(content) {
         const state = window.store.getState();
-        if (!state.user) return;
+        if (!state.currentUser) return;
 
         try {
-            await window.db.collection('users').doc(state.user).collection('data').doc('metodo').set({
+            await window.db.collection('users').doc(state.currentUser).collection('data').doc('metodo').set({
                 content: content, // Agora é um objeto
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });

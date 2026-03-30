@@ -65,7 +65,7 @@ window.materialController = {
 
         // Update Title
         if (this.selectedMateriaId === 'all') {
-            this.currentMateriaTitle.textContent = "Todos os Conteúdos";
+            this.currentMateriaTitle.textContent = "Base de Conhecimento por Matéria";
         } else {
             const m = materias.find(x => x.id === this.selectedMateriaId);
             this.currentMateriaTitle.textContent = m ? m.nome : "Conteúdos";
@@ -77,16 +77,16 @@ window.materialController = {
         const state = window.store.getState();
         const search = this.searchInput ? this.searchInput.value.toLowerCase() : "";
         
-        let filtered = state.conteudos;
+        let filtered = state.materias;
 
         // Filter by Sidebar
         if (this.selectedMateriaId !== 'all') {
-            filtered = filtered.filter(c => c.materiaId === this.selectedMateriaId);
+            filtered = filtered.filter(m => m.id === this.selectedMateriaId);
         }
 
         // Filter by Search
         if (search) {
-            filtered = filtered.filter(c => c.nome.toLowerCase().includes(search));
+            filtered = filtered.filter(m => m.nome.toLowerCase().includes(search));
         }
 
         this.container.innerHTML = "";
@@ -95,23 +95,24 @@ window.materialController = {
             this.container.innerHTML = `
                 <div class="col-span-full py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-200">
                     <i class="ph ph-book-open text-gray-100 text-7xl mb-4"></i>
-                    <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">Nenhum assunto disponível nesta categoria</p>
+                    <p class="text-gray-400 font-bold uppercase tracking-widest text-xs">Nenhuma matéria encontrada</p>
                 </div>
             `;
             return;
         }
 
-        filtered.forEach(c => {
-            const material = window.store.getMaterial(c.id);
-            const materia = state.materias.find(m => m.id === c.materiaId);
+        filtered.forEach(m => {
+            const material = window.store.getMaterial(m.id);
             const card = document.createElement('div');
             card.className = 'group bg-white p-7 rounded-[2.5rem] shadow-premium border border-gray-50 hover:border-primary-200 transition-all hover:shadow-xl relative overflow-hidden flex flex-col h-fit animate-fade-in';
             
             // Icon logic based on URL
             const getIcon = (url) => {
-                if (url.includes('youtube.com') || url.includes('youtu.be')) return 'ph-youtube-logo text-red-500';
-                if (url.includes('drive.google.com')) return 'ph-google-drive-logo text-green-600';
-                if (url.includes('.pdf')) return 'ph-file-pdf text-orange-600';
+                const u = url.toLowerCase();
+                if (u.includes('youtube.com') || u.includes('youtu.be')) return 'ph-youtube-logo text-red-500';
+                if (u.includes('drive.google.com')) return 'ph-google-drive-logo text-green-600';
+                if (/^[a-zA-Z]:[\\\/]/.test(url)) return 'ph-folder-open text-amber-500';
+                if (u.includes('.pdf')) return 'ph-file-pdf text-orange-600';
                 return 'ph-link-simple text-blue-500';
             };
 
@@ -121,27 +122,27 @@ window.materialController = {
             card.innerHTML = `
                 <div class="relative flex flex-col h-full">
                     <div class="flex justify-between items-start mb-4">
-                        <span class="bg-gray-50 text-gray-400 text-[9px] font-black uppercase px-2 py-1 rounded-lg border border-gray-100">${materia ? materia.nome : 'Matéria'}</span>
+                        <span class="bg-gray-50 text-gray-400 text-[9px] font-black uppercase px-2 py-1 rounded-lg border border-gray-100">Disciplina</span>
                         <div class="flex gap-1.5">${linksIcons}</div>
                     </div>
                     
-                    <h4 class="font-black text-gray-900 mb-4 text-base leading-tight">${c.nome}</h4>
+                    <h4 class="font-black text-gray-900 mb-4 text-base leading-tight">${m.nome}</h4>
                     
                     <div class="flex items-center gap-4 mb-6">
                         <div class="flex items-center gap-1.5">
                             <i class="ph ph-article text-gray-300"></i>
-                            <span class="text-[10px] font-bold text-gray-500">${material.links.length} Links</span>
+                            <span class="text-[10px] font-bold text-gray-500">${material.links.length} Recursos</span>
                         </div>
                         ${hasNotes ? `
                             <div class="flex items-center gap-1.5">
                                 <i class="ph ph-note-pencil text-primary-400"></i>
-                                <span class="text-[10px] font-bold text-primary-500">Com Notas</span>
+                                <span class="text-[10px] font-bold text-primary-500">Com Anotações</span>
                             </div>
                         ` : ''}
                     </div>
 
-                    <button onclick="window.materialController.abrirModal('${c.id}')" class="w-full py-3.5 bg-primary-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-primary-100">
-                        <i class="ph-bold ph-pencil-simple-line"></i> Gerenciar Material
+                    <button onclick="window.materialController.abrirModal('${m.id}')" class="w-full py-3.5 bg-primary-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-primary-100">
+                        <i class="ph-bold ph-pencil-simple-line"></i> Gerenciar Matéria
                     </button>
                 </div>
             `;
@@ -149,15 +150,14 @@ window.materialController = {
         });
     },
 
-    abrirModal: function(conteudoId) {
+    abrirModal: function(materiaId) {
         const state = window.store.getState();
-        const conteudo = state.conteudos.find(c => c.id === conteudoId);
-        const materia = state.materias.find(m => m.id === (conteudo ? conteudo.materiaId : ''));
-        const material = window.store.getMaterial(conteudoId);
+        const materia = state.materias.find(m => m.id === materiaId);
+        const material = window.store.getMaterial(materiaId);
 
-        this.inputId.value = conteudoId;
-        this.modalTitle.textContent = conteudo ? conteudo.nome : "Gestão de Material";
-        this.modalSubtitle.textContent = materia ? materia.nome : "Disciplina";
+        this.inputId.value = materiaId;
+        this.modalTitle.textContent = materia ? materia.nome : "Gestão de Material";
+        this.modalSubtitle.textContent = "Base de Conhecimento";
         this.textareaNotes.value = material.notas || "";
         this.inputNewLink.value = "";
 
@@ -202,12 +202,12 @@ window.materialController = {
 
     handleAddLink: function() {
         const url = this.inputNewLink.value.trim();
-        const conteudoId = this.inputId.value;
+        const materiaId = this.inputId.value;
         if (!url) return;
 
-        const material = window.store.getMaterial(conteudoId);
+        const material = window.store.getMaterial(materiaId);
         material.links.push(url);
-        window.store.updateMaterial(conteudoId, material.links, material.notas);
+        window.store.updateMaterial(materiaId, material.links, material.notas);
         
         this.inputNewLink.value = "";
         this.renderModalLinks(material.links);
@@ -216,10 +216,10 @@ window.materialController = {
     },
 
     removeLink: function(index) {
-        const conteudoId = this.inputId.value;
-        const material = window.store.getMaterial(conteudoId);
+        const materiaId = this.inputId.value;
+        const material = window.store.getMaterial(materiaId);
         material.links.splice(index, 1);
-        window.store.updateMaterial(conteudoId, material.links, material.notas);
+        window.store.updateMaterial(materiaId, material.links, material.notas);
         
         this.renderModalLinks(material.links);
         this.renderGrid();
@@ -228,11 +228,11 @@ window.materialController = {
 
     fecharModal: function() {
         // Save notes before closing
-        const conteudoId = this.inputId.value;
-        const material = window.store.getMaterial(conteudoId);
+        const materiaId = this.inputId.value;
+        const material = window.store.getMaterial(materiaId);
         const notes = this.textareaNotes.value;
         
-        window.store.updateMaterial(conteudoId, material.links, notes);
+        window.store.updateMaterial(materiaId, material.links, notes);
         
         this.modalContent.classList.add('scale-95', 'opacity-0');
         setTimeout(() => {

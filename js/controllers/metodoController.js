@@ -24,10 +24,19 @@ window.metodoController = {
                 placeholder: 'O que estudar hoje?',
                 modules: {
                     toolbar: [
-                        ['bold', 'italic', 'underline'],
+                        ['bold', 'italic', 'underline', 'link'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         ['clean']
                     ]
+                }
+            });
+
+            // Tornar links clicáveis (abrir em nova aba)
+            this.instances[day].root.addEventListener('click', (ev) => {
+                const link = ev.target.closest('a');
+                if (link && link.href) {
+                    ev.preventDefault();
+                    window.open(link.href, '_blank');
                 }
             });
 

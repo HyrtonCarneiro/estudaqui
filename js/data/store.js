@@ -183,21 +183,21 @@ window.store = {
         this.save();
     },
 
-    updateMaterial: function(conteudoId, links, notas) {
-        let material = this.state.materiais.find(m => m.conteudoId === conteudoId);
+    updateMaterial: function(materiaId, links, notas) {
+        let material = this.state.materiais.find(m => m.materiaId === materiaId);
         if (material) {
             material.links = links;
             material.notas = notas;
         } else {
-            material = { conteudoId, links, notas };
+            material = { materiaId, links, notas };
             this.state.materiais.push(material);
         }
         this.save();
         return material;
     },
 
-    getMaterial: function(conteudoId) {
-        return this.state.materiais.find(m => m.conteudoId === conteudoId) || { conteudoId, links: [], notas: "" };
+    getMaterial: function(materiaId) {
+        return this.state.materiais.find(m => m.materiaId === materiaId) || { materiaId, links: [], notas: "" };
     },
 
     // --- Shared Editais Logic ---
