@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.cadastrosController) window.cadastrosController.init();
     if (window.pomodoroController) window.pomodoroController.init();
     if (window.materialController) window.materialController.init();
-    if (window.simuladosController) window.simuladosController.init();
     if (window.editaisController) window.editaisController.init();
     if (window.adminController) window.adminController.init();
     if (window.linksController) window.linksController.init();

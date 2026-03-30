@@ -87,7 +87,7 @@ window.appControllers = {
         }
         
         // Update nav buttons styling
-        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'simulados', 'metas', 'admin', 'links'];
+        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links'];
         navs.forEach(nav => {
             const btn = document.getElementById('nav-' + nav);
             if (btn) {
@@ -117,11 +117,8 @@ window.appControllers = {
         if (pageId === 'materiais') {
             if (window.materialController) window.materialController.render();
         }
-        if (pageId === 'simulados') {
-            if (window.simuladosController) window.simuladosController.init();
-        }
-        if (pageId === 'metas') {
-            if (window.gamificationController) window.gamificationController.updateUI();
+        if (pageId === 'metodo') {
+            if (window.metodoController) window.metodoController.init();
         }
         if (pageId === 'admin') {
             if (window.adminController) window.adminController.render();

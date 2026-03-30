@@ -78,6 +78,9 @@
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+    <!-- Quill Editor (CDN) -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 </head>
 <body class="bg-background text-gray-800 font-sans min-h-screen selection:bg-primary-100 selection:text-primary-700">
     <!-- Loading Overlay -->
@@ -150,8 +153,7 @@
                         <button onclick="window.appControllers.navigate('cadastros')" id="nav-cadastros" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-database"></i> Cadastros</button>
                         <button onclick="window.appControllers.navigate('cronograma')" id="nav-cronograma" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-calendar-check"></i> Cronograma</button>
                         <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files"></i> Materiais</button>
-                        <button onclick="window.appControllers.navigate('simulados')" id="nav-simulados" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-chart-bar"></i> Simulados</button>
-                        <button onclick="window.appControllers.navigate('metas')" id="nav-metas" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-trophy"></i> Metas</button>
+                        <button onclick="window.appControllers.navigate('metodo')" id="nav-metodo" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-strategy"></i> Meu Método</button>
                         <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
                         <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check"></i> Gerenciamento</button>
                     </div>
@@ -658,50 +660,26 @@
                 </div>
             </section>
 
-            <!-- Simulados Page -->
-            <section id="page-simulados" class="page-section hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Histórico de Simulados</h2>
-                    <button id="btn-novo-simulado" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm transition-all flex items-center gap-2">
-                        <i class="ph ph-plus-circle"></i> Novo Simulado
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 class="font-bold text-gray-800 mb-4">Evolução de Desempenho</h3>
-                        <canvas id="chart-simulados" height="200"></canvas>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 class="font-bold text-gray-800 mb-4">Últimas Provas</h3>
-                        <div id="list-simulados" class="flex flex-col gap-3">
-                            <!-- Lista de simulados via JS -->
-                        </div>
+            <!-- Metodo Page (Premium Text Editor) -->
+            <section id="page-metodo" class="page-section hidden page-transition">
+                <div class="mb-10 flex justify-between items-end">
+                    <div>
+                        <h2 class="text-3xl font-black text-gray-900 tracking-tight">Estratégia de Estudos</h2>
+                        <p class="text-gray-400 text-sm font-medium">Anote detalhadamente seu método com passo a passo</p>
                     </div>
                 </div>
-            </section>
 
-            <!-- Metas Page -->
-            <section id="page-metas" class="page-section hidden">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Metas e Recompensas</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-gradient-to-br from-orange-400 to-red-500 p-6 rounded-2xl shadow-lg text-white">
-                        <p class="text-sm opacity-80">Estudando há</p>
-                        <p id="stat-streak" class="text-4xl font-black">5 dias</p>
-                        <p class="text-xs mt-2 italic">Não quebre a corrente!</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Média de Acertos</p>
-                        <p id="stat-media-acertos" class="text-3xl font-black text-gray-800">--</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <p class="text-sm text-gray-500">Maratona</p>
-                        <p id="stat-total-horas" class="text-3xl font-bold text-gray-800">42h 30m</p>
-                    </div>
-                </div>
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-6">Suas Medalhas</h3>
-                    <div id="container-badges" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                        <!-- Badges via JS -->
+                <div class="bg-white rounded-[2.5rem] shadow-premium border border-gray-100 overflow-hidden relative">
+                    <!-- Custom Toolbar Styling -->
+                    <style>
+                        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #f3f4f6 !important; padding: 1.5rem !important; background: #fcfdfe; }
+                        .ql-container.ql-snow { border: none !important; height: 60vh !important; font-family: 'Outfit', sans-serif !important; font-size: 15px !important; color: #374151 !important; line-height: 1.8 !important; }
+                        .ql-editor { padding: 2.5rem !important; }
+                        .ql-editor.ql-blank::before { color: #d1d5db !important; font-style: normal !important; }
+                    </style>
+                    <div id="editor-metodo"></div>
+                    <div id="metodo-status" class="absolute bottom-6 right-8 flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-0 transition-opacity duration-300">
+                        <i class="ph-bold ph-cloud-check text-green-500 text-sm"></i> Sincronizado
                     </div>
                 </div>
             </section>
@@ -826,6 +804,9 @@
         </div>
     </div>
 
+    <!-- Quill Editor (CDN Script) -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
     <!-- Scripts (Zero Build Import System) -->
     <!-- 1. Config / Utils -->
     <script src="js/config/firebase.js"></script>
@@ -837,6 +818,7 @@
     <script src="js/logic/cronogramaLogic.js"></script>
     <script src="js/logic/spacedRepetition.js"></script>
     <script src="js/logic/pomodoro.js"></script>
+    <script src="js/logic/metodoLogic.js"></script>
     <!-- 4. Controllers -->
     <script src="js/controllers/appController.js"></script>
     <script src="js/controllers/dashboardController.js"></script>
@@ -845,10 +827,9 @@
     <script src="js/controllers/editaisController.js"></script>
     <script src="js/controllers/pomodoroController.js"></script>
     <script src="js/controllers/materialController.js"></script>
-    <script src="js/controllers/simuladosController.js"></script>
-    <script src="js/controllers/gamificationController.js"></script>
     <script src="js/controllers/adminController.js"></script>
     <script src="js/controllers/linksController.js"></script>
+    <script src="js/controllers/metodoController.js"></script>
     <script src="js/controllers/main.js"></script>
 </body>
 </html>
