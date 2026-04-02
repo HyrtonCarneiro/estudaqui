@@ -54,7 +54,7 @@ window.linksController = {
 
     render: function() {
         if (!this.container) return;
-        const links = window.store.getState().linksUteis || [];
+        const links = [...(window.store.getState().linksUteis || [])].sort((a, b) => a.titulo.localeCompare(b.titulo));
         
         this.container.innerHTML = "";
 
