@@ -20,7 +20,10 @@ window.notificationService = {
                         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                         console.log("Service Worker registrado com sucesso:", registration.scope);
                         
-                        const currentToken = await messaging.getToken({ serviceWorkerRegistration: registration });
+                        // Espera ficar ativo de verdade
+                        const readyReg = await navigator.serviceWorker.ready;
+                        
+                        const currentToken = await messaging.getToken({ serviceWorkerRegistration: readyReg });
                         
                         if (currentToken) {
                             // Salvar no Firestore usando currentUser
@@ -40,7 +43,7 @@ window.notificationService = {
                         }
                     } catch (swError) {
                         console.error("Erro no Service Worker:", swError);
-                        window.utils.showToast("Erro de registro interno do navegador. Atualize a página e tente.", "error");
+                        window.utils.showToast("Erro Técnico: " + swError.message, "error");
                     }
                 } else {
                     window.utils.showToast("Seu navegador não suporta notificações em segundo plano.", "error");
