@@ -49,26 +49,33 @@ window.downloadsController = {
     },
 
     _gerarInstaladorBat: function(fcmToken) {
-        // Função de escape para UTF-8 Base64
-        const toB64 = (str) => btoa(unescape(encodeURIComponent(str)));
+        // Função para converter string para UTF-16LE Base64 (Requisito do PowerShell -EncodedCommand)
+        const toUTF16LEB64 = (str) => {
+            const buffer = new ArrayBuffer(str.length * 2);
+            const view = new Uint16Array(buffer);
+            for (let i = 0; i < str.length; i++) {
+                view[i] = str.charCodeAt(i);
+            }
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        };
 
-        // Definição dos scripts que serão instalados
-        const ps1Script = `# anki-monitor.ps1
+        const ps1Base64 = btoa(unescape(encodeURIComponent(`# anki-monitor.ps1
 $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $configFile = Join-Path $PSScriptRoot "config.json"
-$logFile = Join-Path $PSScriptRoot "monitor.log"
 function Log-Msg($msg) {
-    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Add-Content -Path $logFile -Value "[$ts] $msg"
+    Add-Content -Path (Join-Path $PSScriptRoot "monitor.log") -Value "[(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $msg"
 }
 if (-not (Test-Path $configFile)) { exit }
-Log-Msg "Monitor Anki iniciado."
 while ($true) {
     try {
         $config = Get-Content $configFile | ConvertFrom-Json
         $hoje = Get-Date -Format "yyyy-MM-dd"
         if ($config.lastNotifiedDate -ne $hoje) {
-            # Busca cards e envia push
             $qNew = @{ action = 'findCards'; version = 6; params = @{ query = 'is:new' } } | ConvertTo-Json
             $qLrn = @{ action = 'findCards'; version = 6; params = @{ query = 'is:learn' } } | ConvertTo-Json
             $qRev = @{ action = 'findCards'; version = 6; params = @{ query = 'is:review is:due' } } | ConvertTo-Json
@@ -86,87 +93,71 @@ while ($true) {
         }
     } catch {}
     Start-Sleep -Seconds 1800
-}`;
+}`)));
 
-        const vbsScript = `Set WshShell = CreateObject("WScript.Shell")
-WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & Replace(WScript.ScriptFullName, WScript.ScriptName, "") & "anki-monitor.ps1""", 0, False`;
+        const vbsBase64 = btoa(`Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & Replace(WScript.ScriptFullName, WScript.ScriptName, "") & "anki-monitor.ps1""", 0, False`);
 
-        const testBat = `@echo off
-title Testando Notificacao...
-echo [1/2] Consultando Anki e enviando push de teste...
-powershell.exe -ExecutionPolicy Bypass -Command "$config = Get-Content 'config.json' | ConvertFrom-Json; $qNew = @{ action = 'findCards'; version = 6; params = @{ query = 'is:new' } } | ConvertTo-Json; $qLrn = @{ action = 'findCards'; version = 6; params = @{ query = 'is:learn' } } | ConvertTo-Json; $qRev = @{ action = 'findCards'; version = 6; params = @{ query = 'is:review is:due' } } | ConvertTo-Json; $rNew = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qNew; $rLrn = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qLrn; $rRev = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qRev; $total = $rNew.result.Count + $rLrn.result.Count + $rRev.result.Count; $bodyText = 'TESTE MANUAL: Voce tem ' + $total + ' cards: N:' + $rNew.result.Count + ' A:' + $rLrn.result.Count + ' R:' + $rRev.result.Count; $bodyPush = @{ token = $config.fcmToken; title = 'Teste OK! 🔔'; body = $bodyText } | ConvertTo-Json; Invoke-RestMethod -Uri 'https://concursosti.vercel.app/api/notify' -Method Post -Body $bodyPush -ContentType 'application/json'; echo 'SUCESSO: Verifique seu celular!'"
-pause`;
+        const testBatBase64 = btoa(`@echo off
+echo Consultando Anki e enviando teste...
+powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json;$q=@{action='findCards';version=6;params=@{query=''}};$r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json);$body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json;Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json';echo Sucesso!"
+pause`);
 
-        const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedDate: "" }, null, 2);
+        const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedDate: "" });
 
-        // Retorna o arquivo híbrido
-        return `@echo off
-chcp 65001 >nul
-title Instalador Blindado AnkiMonitor
-echo ============================================
-echo   INSTALADOR MONITOR ANKI - ConcursosTI
-echo ============================================
-echo.
-echo [!] Verificando sistema e preparando instalacao...
-set "SELF_PATH=%~f0"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$script = (Get-Content -LiteralPath $env:SELF_PATH) -join \\"\`n\\"; if ($script -match '# PS_START\\n([\\s\\S]*)') { Invoke-Expression $Matches[1] } else { Write-Error 'Erro: Marcador de script nao encontrado.' }"
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [!] ERRO CRITICO DURANTE A INSTALACAO. 
-    echo Verifique se o seu Antivirus bloqueou o processo.
-)
-echo.
-echo Presione qualquer tecla para sair.
-pause >nul
-exit /b
-
-# PS_START
+        // Script de Instalação Mestre (PowerShell)
+        const masterScript = `
 $installDir = "$env:USERPROFILE\\AnkiMonitor"
 $startupDir = "$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+$vbsPath = "$installDir\\anki-monitor.vbs"
 
 try {
-    Write-Host "- [1/5] Encerrando monitores antigos para evitar duplicidade..." -ForegroundColor Cyan
-    # Busca processos do PowerShell que estão rodando o script do monitor
-    $oldProcs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*anki-monitor.ps1*" }
-    foreach ($p in $oldProcs) { 
-        Write-Host "   Encerrando processo $($p.ProcessId)..."
-        Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue 
-    }
+    Write-Host "--- INSTALADOR BLINDADO ConcursosTI ---" -ForegroundColor Yellow
     
-    Write-Host "- [2/5] Limpando rastros e arquivos antigos..." -ForegroundColor Cyan
-    if (Test-Path $installDir) { Remove-Item -Path $installDir -Recurse -Force -ErrorAction SilentlyContinue }
-    if (Test-Path "$startupDir\\anki-monitor.vbs") { Remove-Item -Path "$startupDir\\anki-monitor.vbs" -Force }
-    
+    Write-Host "1. Limpando processos antigos..." -ForegroundColor Cyan
+    $procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*anki-monitor.ps1*" }
+    foreach ($p in $procs) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+
+    Write-Host "2. Preparando pasta..." -ForegroundColor Cyan
+    if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force -ErrorAction SilentlyContinue }
     mkdir $installDir -Force | Out-Null
-    
-    Write-Host "- [3/5] Decodificando scripts (Seguro)..." -ForegroundColor Cyan
-    $ps1 = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(ps1Script)}"))
-    $vbs = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(vbsScript)}"))
-    $cfg = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(configJson)}"))
-    $tst = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(testBat)}"))
 
-    Write-Host "- [4/5] Instalando arquivos na pasta AnkiMonitor..." -ForegroundColor Cyan
-    $ps1 | Set-Content -Path "$installDir\\anki-monitor.ps1" -Encoding UTF8
-    $vbs | Set-Content -Path "$installDir\\anki-monitor.vbs" -Encoding UTF8
-    $cfg | Set-Content -Path "$installDir\\config.json" -Encoding UTF8
-    $tst | Set-Content -Path "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding UTF8
+    Write-Host "3. Instalando arquivos..." -ForegroundColor Cyan
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${ps1Base64}")) | Set-Content "$installDir\\anki-monitor.ps1" -Encoding UTF8
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${vbsBase64}")) | Set-Content $vbsPath -Encoding UTF8
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${testBatBase64}")) | Set-Content "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding UTF8
+    '${configJson}' | Set-Content "$installDir\\config.json" -Encoding UTF8
 
-    Write-Host "- [5/5] Configurando Inicializacao do Windows..." -ForegroundColor Cyan
-    Copy-Item -Path "$installDir\\anki-monitor.vbs" -Destination "$startupDir\\anki-monitor.vbs" -Force
+    Write-Host "4. Configurando inicializacao..." -ForegroundColor Cyan
+    if (Test-Path "$startupDir\\anki-monitor.vbs") { Remove-Item "$startupDir\\anki-monitor.vbs" -Force }
+    Copy-Item $vbsPath "$startupDir\\anki-monitor.vbs" -Force
+
+    Write-Host "5. Iniciando monitor..." -ForegroundColor Cyan
+    & wscript.exe $vbsPath
 
     Write-Host ""
-    Write-Host "- Iniciando novo monitor agora..." -ForegroundColor Cyan
-    & wscript.exe "$installDir\\anki-monitor.vbs"
-
-    Write-Host ""
-    Write-Host "============================================" -ForegroundColor Green
-    Write-Host "   INSTALACAO CONCLUIDA COM SUCESSO!" -ForegroundColor Green
-    Write-Host "   O Monitor unico ja esta rodando." -ForegroundColor Green
-    Write-Host "============================================" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host "     INSTALACAO CONCLUIDA COM SUCESSO!" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Green
 } catch {
-    Write-Error "ERRO NA INSTALACAO: $_"
-    exit 1
+    Write-Error "Erro critico: $_"
+    Read-Host "Pressione Enter para fechar"
 }
+`;
+
+        const encodedCommand = toUTF16LEB64(masterScript);
+
+        return `@echo off
+chcp 65001 >nul
+title Instalador Blindado
+echo Iniciando instalacao segura...
+powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encodedCommand}
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo Ocorreu um erro. Verifique se o PowerShell esta bloqueado.
+    pause
+)
+exit /b
 `;
     },
 
