@@ -4,6 +4,12 @@ window.notificationService = {
      */
     requestPermission: async function() {
         try {
+            // Verificação de suporte inicial
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                window.utils.showToast("Seu navegador não suporta notificações Push.", "error");
+                return;
+            }
+
             const state = window.store.getState();
             if (!state.isAuthenticated || !state.currentUser) {
                 window.utils.showToast("Você precisa estar logado para ativar notificações.", "error");
@@ -54,7 +60,12 @@ window.notificationService = {
                         }
                     } catch (swError) {
                         console.error("Erro no Service Worker:", swError);
-                        window.utils.showToast("Erro Técnico: " + swError.message, "error");
+                        
+                        let msg = swError.message;
+                        if (msg.includes("push service error")) {
+                            msg = "O Chrome do celular está travado. Clique no Cadeado (ao lado do link do site) > Configurações do Site > Limpar Dados e tente denovo.";
+                        }
+                        window.utils.showToast("Erro Técnico: " + msg, "error");
                     }
                 } else {
                     window.utils.showToast("Seu navegador não suporta notificações em segundo plano.", "error");
