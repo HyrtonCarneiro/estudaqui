@@ -43,33 +43,33 @@ window.downloadsController = {
             return;
         }
 
-        const batContent = this._gerarInstaladorBat(fcmToken);
-        this._downloadFile('Instalar-Monitor-Anki.bat', batContent, 'application/x-bat');
-        window.utils.showToast("Instalador baixado!", "success");
+        try {
+            const batContent = this._gerarInstaladorBat(fcmToken);
+            this._downloadFile('Instalar-Monitor-Anki.bat', batContent, 'application/x-bat');
+            window.utils.showToast("Instalador baixado!", "success");
+        } catch (err) {
+            console.error(err);
+            window.utils.showToast("Erro ao gerar instalador. Tente novamente.", "error");
+        }
     },
 
     _gerarInstaladorBat: function(fcmToken) {
-        // Função para converter string para UTF-16LE Base64 (Requisito do PowerShell -EncodedCommand)
+        // Helpers de codificação seguros para o Navegador
+        const toB64 = (str) => btoa(unescape(encodeURIComponent(str)));
+        
         const toUTF16LEB64 = (str) => {
             const buffer = new ArrayBuffer(str.length * 2);
             const view = new Uint16Array(buffer);
-            for (let i = 0; i < str.length; i++) {
-                view[i] = str.charCodeAt(i);
-            }
+            for (let i = 0; i < str.length; i++) view[i] = str.charCodeAt(i);
             const bytes = new Uint8Array(buffer);
             let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
             return btoa(binary);
         };
 
-        const ps1Base64 = btoa(unescape(encodeURIComponent(`# anki-monitor.ps1
+        const ps1Script = `# anki-monitor.ps1
 $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $configFile = Join-Path $PSScriptRoot "config.json"
-function Log-Msg($msg) {
-    Add-Content -Path (Join-Path $PSScriptRoot "monitor.log") -Value "[(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $msg"
-}
 if (-not (Test-Path $configFile)) { exit }
 while ($true) {
     try {
@@ -93,19 +93,18 @@ while ($true) {
         }
     } catch {}
     Start-Sleep -Seconds 1800
-}`)));
+}`;
 
-        const vbsBase64 = btoa(`Set WshShell = CreateObject("WScript.Shell")
-WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & Replace(WScript.ScriptFullName, WScript.ScriptName, "") & "anki-monitor.ps1""", 0, False`);
+        const vbsScript = `Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & Replace(WScript.ScriptFullName, WScript.ScriptName, "") & "anki-monitor.ps1""", 0, False`;
 
-        const testBatBase64 = btoa(`@echo off
+        const testBat = `@echo off
 echo Consultando Anki e enviando teste...
 powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json;$q=@{action='findCards';version=6;params=@{query=''}};$r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json);$body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json;Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json';echo Sucesso!"
-pause`);
+pause`;
 
         const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedDate: "" });
 
-        // Script de Instalação Mestre (PowerShell)
         const masterScript = `
 $installDir = "$env:USERPROFILE\\AnkiMonitor"
 $startupDir = "$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
@@ -123,9 +122,9 @@ try {
     mkdir $installDir -Force | Out-Null
 
     Write-Host "3. Instalando arquivos..." -ForegroundColor Cyan
-    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${ps1Base64}")) | Set-Content "$installDir\\anki-monitor.ps1" -Encoding UTF8
-    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${vbsBase64}")) | Set-Content $vbsPath -Encoding UTF8
-    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${testBatBase64}")) | Set-Content "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding UTF8
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(ps1Script)}")) | Set-Content "$installDir\\anki-monitor.ps1" -Encoding UTF8
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(vbsScript)}")) | Set-Content $vbsPath -Encoding UTF8
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(testBat)}")) | Set-Content "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding UTF8
     '${configJson}' | Set-Content "$installDir\\config.json" -Encoding UTF8
 
     Write-Host "4. Configurando inicializacao..." -ForegroundColor Cyan
@@ -151,7 +150,7 @@ try {
 chcp 65001 >nul
 title Instalador Blindado
 echo Iniciando instalacao segura...
-powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encodedCommand}
+powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand "${encodedCommand}"
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo Ocorreu um erro. Verifique se o PowerShell esta bloqueado.
