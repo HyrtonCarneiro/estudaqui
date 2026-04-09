@@ -62,7 +62,7 @@ window.notificationService = {
      * @param {string} username - O usuario atual
      * @param {number} cardsCount - Numero de cards lidos do Anki 
      */
-    triggerMobilePush: async function(username, cardsCount) {
+    triggerMobilePush: async function(username, cardsCount, breakdown) {
         try {
             // Busca o token do usuario pra ter certeza de mandar certo
             const userDoc = await window.db.collection('users').doc(username).get();
@@ -74,13 +74,12 @@ window.notificationService = {
                 return false;
             }
             
-            // Dispara para o nosso backend na vercel
-            // Assumimos que o front está hospedado na Vercel e o /api/notify está rodando no mesmo origin.
-            // Se o usuário abrir no file:// e o backend estiver na web, precisaria da URL completa oficial,
-            // mas como é Vercel, faremos um fetch para a raiz do site, ou um hardcode toleravel.
-            // Para "Zero build" universal, se rodar do file:// o /api/notify não existe localmente. 
-            // Precisamos da URL de produção se rodando local:
             const host = window.location.protocol === "file:" ? "https://estudaqui-hyrtons-projects.vercel.app" : window.location.origin;
+
+            let bodyText = `Você tem ${cardsCount} cards pendentes no Anki para hoje!`;
+            if (breakdown) {
+                bodyText += `\nNovos: ${breakdown.new} | Aprender: ${breakdown.learn} | Revisar: ${breakdown.review}`;
+            }
 
             const response = await fetch(`${host}/api/notify`, {
                 method: 'POST',
@@ -90,9 +89,10 @@ window.notificationService = {
                 body: JSON.stringify({
                     token: userData.fcmToken,
                     title: "Estudos Pendentes 📚",
-                    body: `Você tem ${cardsCount} cards pendentes no Anki para revisar hoje!`
+                    body: bodyText
                 })
             });
+
 
             if (!response.ok) {
                 const errData = await response.json();

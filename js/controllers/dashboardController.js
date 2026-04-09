@@ -330,6 +330,15 @@ window.dashboardController = {
             if (ankiResult.success) {
                 const count = ankiResult.count;
                 ankiEl.textContent = count > 0 ? `${count} cards` : 'Zerado!';
+                
+                // Exibe o Breakdown
+                const bkDownEl = document.getElementById('dash-stat-anki-breakdown');
+                if (bkDownEl && ankiResult.breakdown) {
+                    const bk = ankiResult.breakdown;
+                    bkDownEl.textContent = `N: ${bk.new} | A: ${bk.learn} | R: ${bk.review}`;
+                    bkDownEl.classList.remove('hidden');
+                }
+
                 if (statusDot) {
                     statusDot.classList.remove('bg-gray-300', 'bg-red-500', 'animate-pulse');
                     statusDot.classList.add('bg-green-500');
@@ -350,7 +359,7 @@ window.dashboardController = {
                             if (data.ultimoAlertaAnki !== hojeDateString && data.fcmToken) {
                                 console.log("Primeira sincronização do Anki no dia. Disparando notificação mobile...");
                                 
-                                const pushEnviado = await window.notificationService.triggerMobilePush(state.currentUser, count);
+                                const pushEnviado = await window.notificationService.triggerMobilePush(state.currentUser, count, ankiResult.breakdown);
                                 
                                 if (pushEnviado) {
                                     await userDocRef.set({ ultimoAlertaAnki: hojeDateString }, { merge: true });
