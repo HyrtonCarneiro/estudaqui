@@ -49,7 +49,10 @@ window.downloadsController = {
     },
 
     _gerarInstaladorBat: function(fcmToken) {
-        // Scripts originais
+        // Função de escape para UTF-8 Base64
+        const toB64 = (str) => btoa(unescape(encodeURIComponent(str)));
+
+        // Definição dos scripts que serão instalados
         const ps1Script = `# anki-monitor.ps1
 $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $configFile = Join-Path $PSScriptRoot "config.json"
@@ -65,6 +68,7 @@ while ($true) {
         $config = Get-Content $configFile | ConvertFrom-Json
         $hoje = Get-Date -Format "yyyy-MM-dd"
         if ($config.lastNotifiedDate -ne $hoje) {
+            # Busca cards e envia push
             $qNew = @{ action = 'findCards'; version = 6; params = @{ query = 'is:new' } } | ConvertTo-Json
             $qLrn = @{ action = 'findCards'; version = 6; params = @{ query = 'is:learn' } } | ConvertTo-Json
             $qRev = @{ action = 'findCards'; version = 6; params = @{ query = 'is:review is:due' } } | ConvertTo-Json
@@ -91,69 +95,65 @@ WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "
 title Testando Notificacao...
 echo [1/2] Consultando Anki e enviando push de teste...
 powershell.exe -ExecutionPolicy Bypass -Command "$config = Get-Content 'config.json' | ConvertFrom-Json; $qNew = @{ action = 'findCards'; version = 6; params = @{ query = 'is:new' } } | ConvertTo-Json; $qLrn = @{ action = 'findCards'; version = 6; params = @{ query = 'is:learn' } } | ConvertTo-Json; $qRev = @{ action = 'findCards'; version = 6; params = @{ query = 'is:review is:due' } } | ConvertTo-Json; $rNew = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qNew; $rLrn = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qLrn; $rRev = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qRev; $total = $rNew.result.Count + $rLrn.result.Count + $rRev.result.Count; $bodyText = 'TESTE MANUAL: Voce tem ' + $total + ' cards: N:' + $rNew.result.Count + ' A:' + $rLrn.result.Count + ' R:' + $rRev.result.Count; $bodyPush = @{ token = $config.fcmToken; title = 'Teste OK! 🔔'; body = $bodyText } | ConvertTo-Json; Invoke-RestMethod -Uri 'https://concursosti.vercel.app/api/notify' -Method Post -Body $bodyPush -ContentType 'application/json'; echo 'SUCESSO: Verifique seu celular!'"
-echo [2/2] Concluido.
 pause`;
 
         const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedDate: "" }, null, 2);
 
-        // Função de escape para UTF-8 Base64
-        const toB64 = (str) => btoa(unescape(encodeURIComponent(str)));
-
-        // Montagem do Instalador "Mestre" (Self-Extracting)
-        // O .bat chama o PowerShell, que lê o próprio .bat a partir da linha 10
+        // Retorna o arquivo híbrido
         return `@echo off
 chcp 65001 >nul
-title Instalador ConcursosTI
+title Instalador Blindado AnkiMonitor
 echo ============================================
 echo   INSTALADOR MONITOR ANKI - ConcursosTI
 echo ============================================
 echo.
-echo Iniciando motor de instalacao...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Expression ( (Get-Content '%~f0' | Select-Object -Skip 12) -join [Environment]::NewLine )"
+echo [!] Verificando sistema e preparando instalacao...
+set "SELF_PATH=%~f0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$script = (Get-Content -LiteralPath $env:SELF_PATH) -join \\"\`n\\"; if ($script -match '# PS_START\\n([\\s\\S]*)') { Invoke-Expression $Matches[1] } else { Write-Error 'Erro: Marcador de script nao encontrado.' }"
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [!] Ocorreu um erro durante a instalacao. Verifique se o PowerShell esta permitido.
+    echo [!] ERRO CRITICO DURANTE A INSTALACAO. 
+    echo Verifique se o seu Antivirus bloqueou o processo.
 )
 echo.
-pause
+echo Presione qualquer tecla para sair.
+pause >nul
 exit /b
 
-# --- POWERSHELL INSTALLATION ENGINE ---
+# PS_START
 $installDir = "$env:USERPROFILE\\AnkiMonitor"
 $startupDir = "$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
 
 try {
-    Write-Host "[1/5] Limpando versoes anteriores..." -ForegroundColor Cyan
+    Write-Host "- [1/5] Limpando rastros antigos..." -ForegroundColor Cyan
     if (Test-Path $installDir) { Remove-Item -Path $installDir -Recurse -Force -ErrorAction SilentlyContinue }
     if (Test-Path "$startupDir\\anki-monitor.vbs") { Remove-Item -Path "$startupDir\\anki-monitor.vbs" -Force }
     
     mkdir $installDir -Force | Out-Null
     
-    Write-Host "[2/5] Decodificando componentes..." -ForegroundColor Cyan
+    Write-Host "- [2/5] Decodificando scripts (Seguro)..." -ForegroundColor Cyan
     $ps1 = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(ps1Script)}"))
     $vbs = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(vbsScript)}"))
     $cfg = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(configJson)}"))
     $tst = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(testBat)}"))
 
-    Write-Host "[3/5] Gravando arquivos locais..." -ForegroundColor Cyan
+    Write-Host "- [3/5] Instalando arquivos na pasta AnkiMonitor..." -ForegroundColor Cyan
     $ps1 | Set-Content -Path "$installDir\\anki-monitor.ps1" -Encoding UTF8
     $vbs | Set-Content -Path "$installDir\\anki-monitor.vbs" -Encoding UTF8
     $cfg | Set-Content -Path "$installDir\\config.json" -Encoding UTF8
     $tst | Set-Content -Path "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding UTF8
 
-    Write-Host "[4/5] Configurando inicializacao automática..." -ForegroundColor Cyan
+    Write-Host "- [4/5] Configurando Inicializacao do Windows..." -ForegroundColor Cyan
     Copy-Item -Path "$installDir\\anki-monitor.vbs" -Destination "$startupDir\\anki-monitor.vbs" -Force
 
-    Write-Host "[5/5] Finalizando..." -ForegroundColor Cyan
+    Write-Host "- [5/5] Finalizando..." -ForegroundColor Cyan
     Write-Host ""
     Write-Host "============================================" -ForegroundColor Green
     Write-Host "   INSTALACAO CONCLUIDA COM SUCESSO!" -ForegroundColor Green
+    Write-Host "   O Monitor ja esta rodando no sistema." -ForegroundColor Green
     Write-Host "============================================" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Pasta: $installDir"
-    Write-Host "Para testar agora, execute o arquivo TESTAR-NOTIFICACAO.bat dentro da pasta."
 } catch {
-    Write-Error "Falha na instalacao: $_"
+    Write-Error "ERRO NA INSTALACAO: $_"
     exit 1
 }
 `;
