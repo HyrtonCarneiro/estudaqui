@@ -343,35 +343,6 @@ window.dashboardController = {
                     statusDot.classList.remove('bg-gray-300', 'bg-red-500', 'animate-pulse');
                     statusDot.classList.add('bg-green-500');
                 }
-
-                // Push Notification Logic (Dispara 1 vez por dia se ativado)
-                const state = window.store.getState();
-                if (state.currentUser && count > 0) {
-                    const hojeDateString = new Date().toISOString().split('T')[0]; // ex: "2026-04-09"
-                    
-                    try {
-                        const userDocRef = window.db.collection('users').doc(state.currentUser);
-                        const userDoc = await userDocRef.get();
-                        
-                        if (userDoc.exists) {
-                            const data = userDoc.data();
-                            // Se nao tiver a flag de hoje, ou nunca tiver enviado
-                            if (data.ultimoAlertaAnki !== hojeDateString && data.fcmToken) {
-                                console.log("Primeira sincronização do Anki no dia. Disparando notificação mobile...");
-                                
-                                const pushEnviado = await window.notificationService.triggerMobilePush(state.currentUser, count, ankiResult.breakdown);
-                                
-                                if (pushEnviado) {
-                                    await userDocRef.set({ ultimoAlertaAnki: hojeDateString }, { merge: true });
-                                    window.utils.showToast("Notificação Push enviada para seu celular!", "success");
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.log("Erro ao checar último alerta Anki", e);
-                    }
-                }
-
             } else {
                 ankiEl.textContent = 'Offline';
                 if (statusDot) {
