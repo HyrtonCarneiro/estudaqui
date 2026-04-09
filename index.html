@@ -220,7 +220,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
                     <!-- Stat Cards -->
                     <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4">
                         <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
@@ -248,6 +248,17 @@
                             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Semanas Ativas</p>
                             <p id="dash-stat-semanas" class="text-xl font-black text-gray-900 truncate">0</p>
                         </div>
+                    </div>
+                    <!-- Anki Integration Card -->
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4 relative overflow-hidden group">
+                        <div class="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-110 transition-transform">
+                            <i class="ph-bold ph-cards text-2xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Anki (Hoje)</p>
+                            <p id="dash-stat-anki" class="text-xl font-black text-gray-900 truncate">...</p>
+                        </div>
+                        <div id="anki-status-dot" class="absolute top-4 right-4 w-2 h-2 rounded-full bg-gray-300 animate-pulse"></div>
                     </div>
                     <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4 border-l-4 border-l-primary-600">
                         <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shrink-0">
@@ -923,7 +934,9 @@
     <script src="js/logic/spacedRepetition.js"></script>
     <script src="js/logic/pomodoro.js"></script>
     <script src="js/logic/metodoLogic.js"></script>
-    <!-- 4. Controllers -->
+    <!-- 4. Services -->
+    <script src="js/services/ankiService.js"></script>
+    <!-- 5. Controllers -->
     <script src="js/controllers/appController.js"></script>
     <script src="js/controllers/dashboardController.js"></script>
     <script src="js/controllers/cronogramaController.js"></script>

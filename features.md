@@ -57,12 +57,17 @@ WebApp para organizar cronogramas de estudos para TI e outros assuntos, hospedad
 - Exibir cronômetro regressivo para a data da prova em cada edital ativo.
 - **Sincronização:** Todas as adições, edições ou exclusões de editais são compartilhadas em tempo real entre todos os usuários da plataforma.
 
-## 14. Requisitos Não Funcionais (baseado em RULES.md)
+## 14. Integração com Anki (AnkiConnect)
+- Exibição em tempo real da quantidade de flashcards com revisão pendente no dia atual.
+- Conexão através da API REST exposta pelo AnkiConnect localmente.
+- O Dashboard apresenta indicativos visuais unificados de Status da Conexão (Anki aberto/fechado).
+
+## 15. Requisitos Não Funcionais (baseado em RULES.md)
 - **Design:** Premium Aesthetics, Atomic Design, Tailwind CSS.
 - **Testes:** TDD obrigatório (Testes unitários vitest/jest).
 - **Qualidade de Código:** Princípios SOLID, arquivos com tamanho máximo de 300 linhas, separação de UI e lógica de negócio.
 - **Zero-Build:** Uso de CDNs, sem bundlers.
-## 15. Gestão de Usuários (Superadmin)
+## 16. Gestão de Usuários (Superadmin)
 - **Superadmin:** Usuário `Hyrton` com senha `hyrtinho`.
 - **Painel de Controle:** Aba exclusiva para o superadmin para gerenciar outros usuários.
 - **Funcionalidades:**
@@ -71,7 +76,7 @@ WebApp para organizar cronogramas de estudos para TI e outros assuntos, hospedad
 - **Isolamento de Dados:** Cada usuário possui seu próprio documento no Firestore (`users/{username}`), garantindo total privacidade para seus cronogramas, editais, matérias e estatísticas.
 - **Migração:** O perfil `Hyrton` mantém todos os seus dados atuais de forma isolada.
 
-## 16. Links Úteis
+## 17. Links Úteis
 - Aba para centralizar links externos importantes (NotebookLM, Sites de busca, Editais, etc).
 - Funcionalidades:
   - Adicionar link com título e URL.

@@ -44,7 +44,10 @@ window.dashboardController = {
         // 4. Next Event Hero Card
         this.renderNextEvent(editais);
 
-        // 5. Charts
+        // 5. Anki Stats (Async)
+        this.updateAnkiStats();
+
+        // 6. Charts
         this.renderProgressoChart(materias, cronograma);
         this.renderEditaisChart(editais);
     },
@@ -314,5 +317,34 @@ window.dashboardController = {
                 }
             }
         });
+    },
+
+    updateAnkiStats: async function() {
+        const ankiEl = document.getElementById('dash-stat-anki');
+        const statusDot = document.getElementById('anki-status-dot');
+        if (!ankiEl) return;
+
+        if (window.ankiService) {
+            const ankiResult = await window.ankiService.getDueCardsCount();
+            
+            if (ankiResult.success) {
+                const count = ankiResult.count;
+                ankiEl.textContent = count > 0 ? `${count} cards` : 'Zerado!';
+                if (statusDot) {
+                    statusDot.classList.remove('bg-gray-300', 'bg-red-500', 'animate-pulse');
+                    statusDot.classList.add('bg-green-500');
+                }
+            } else {
+                ankiEl.textContent = 'Offline';
+                if (statusDot) {
+                    statusDot.classList.remove('bg-gray-300', 'bg-green-500');
+                    statusDot.classList.add('bg-red-500', 'animate-pulse');
+                }
+                
+                // Exibe no console, para evitar span de toast toda vez que iniciar offline.
+                // Usando window.utils.showToast daria aviso apenas na tela de dev ou num reload real.
+                console.warn("Anki stats result: ", ankiResult.error);
+            }
+        }
     }
 };
