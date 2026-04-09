@@ -87,7 +87,7 @@ window.appControllers = {
         }
         
         // Update nav buttons styling
-        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links'];
+        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links', 'downloads'];
         navs.forEach(nav => {
             const btn = document.getElementById('nav-' + nav);
             if (btn) {
@@ -125,6 +125,9 @@ window.appControllers = {
         }
         if (pageId === 'links') {
             if (window.linksController) window.linksController.render();
+        }
+        if (pageId === 'downloads') {
+            if (window.downloadsController) window.downloadsController.render();
         }
     },
 

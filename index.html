@@ -160,6 +160,7 @@
                         <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files"></i> Materiais</button>
                         <button onclick="window.appControllers.navigate('metodo')" id="nav-metodo" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-strategy"></i> Meu Método</button>
                         <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
+                        <button onclick="window.appControllers.navigate('downloads')" id="nav-downloads" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-download-simple"></i> Downloads</button>
                         <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check"></i> Gerenciamento</button>
                     </div>
                 </div>
@@ -852,22 +853,7 @@
                     </button>
                 </div>
 
-                <!-- Configuração de Atalhos Locais -->
-                <div class="mb-10 bg-gray-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group shadow-2xl border border-white/5">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary-600/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                        <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shrink-0">
-                            <i class="ph-bold ph-folder-open text-primary-400"></i>
-                        </div>
-                        <div class="flex-1 text-center md:text-left">
-                            <h3 class="text-xl font-black mb-1 tracking-tight">Ativar Abertura de Pastas Locais</h3>
-                            <p class="text-gray-400 text-xs max-w-2xl font-medium">Baixe o arquivo, dê <strong class="text-white">duplo clique</strong> e confirme <strong class="text-white">"Sim"</strong>. Sem necessidade de Administrador. Faça isso uma vez em cada PC.</p>
-                        </div>
-                        <button onclick="window.linksController.downloadInstalador()" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-primary-900/20 active:scale-95 flex items-center gap-2 whitespace-nowrap">
-                            <i class="ph-bold ph-download-simple"></i> Baixar Ativador (.reg)
-                        </button>
-                    </div>
-                </div>
+
 
                 <div id="container-links-uteis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <!-- Links via JS -->
@@ -896,6 +882,65 @@
                             </button>
                         </form>
                     </div>
+                </div>
+            </section>
+
+            <!-- Downloads Page -->
+            <section id="page-downloads" class="page-section hidden page-transition">
+                <div class="mb-10">
+                    <h2 class="text-3xl font-black text-gray-900 tracking-tight">Downloads</h2>
+                    <p class="text-gray-400 text-sm font-medium">Ferramentas e utilitários para o seu desktop</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    <!-- Card 1: Ativador de Pastas -->
+                    <div class="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-48 h-48 bg-amber-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
+                                    <i class="ph-bold ph-folder-open text-amber-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-black text-gray-900 tracking-tight">Ativador de Pastas Locais</h3>
+                                    <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full uppercase tracking-widest">.REG</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-500 text-sm mb-6 leading-relaxed">Permite abrir pastas do computador diretamente a partir dos links do site. Baixe, dê <strong>duplo clique</strong> e confirme <strong>"Sim"</strong>. Sem necessidade de Administrador. Execute uma vez em cada PC.</p>
+                            <button onclick="window.downloadsController.downloadProtocoloPastas()" class="w-full bg-gray-900 hover:bg-amber-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                                <i class="ph-bold ph-download-simple"></i> Baixar Ativador de Pastas (.reg)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Monitor Anki -->
+                    <div class="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-48 h-48 bg-primary-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
+                                    <i class="ph-bold ph-bell-ringing text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-black text-gray-900 tracking-tight">Monitor Anki (Windows)</h3>
+                                    <span class="text-[10px] font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full uppercase tracking-widest">.BAT</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-500 text-sm mb-4 leading-relaxed">Roda silenciosamente no Windows e envia notificações push para o seu celular quando há cards pendentes no Anki — <strong>sem precisar abrir o navegador</strong>. Verifica a cada 30 minutos.</p>
+                            <div class="bg-gray-50 rounded-xl p-3 mb-6">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pré-requisitos</p>
+                                <ul class="text-xs text-gray-500 space-y-1">
+                                    <li class="flex items-center gap-2"><i class="ph-bold ph-check-circle text-green-500"></i> Notificações ativadas no celular (via Dashboard)</li>
+                                    <li class="flex items-center gap-2"><i class="ph-bold ph-check-circle text-green-500"></i> Anki com AnkiConnect instalado</li>
+                                </ul>
+                            </div>
+                            <button onclick="window.downloadsController.downloadMonitorAnki()" class="w-full bg-gray-900 hover:bg-primary-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                                <i class="ph-bold ph-download-simple"></i> Baixar Monitor Anki (.bat)
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </section>
         </main>
@@ -951,6 +996,7 @@
     <script src="js/controllers/materialController.js"></script>
     <script src="js/controllers/adminController.js"></script>
     <script src="js/controllers/linksController.js"></script>
+    <script src="js/controllers/downloadsController.js"></script>
     <script src="js/controllers/metodoController.js"></script>
     <script src="js/controllers/main.js"></script>
 

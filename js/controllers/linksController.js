@@ -120,39 +120,5 @@ window.linksController = {
             this.render();
             window.utils.showToast("Link removido.", "info");
         }
-    },
-
-    downloadInstalador: function() {
-        // Gera um .reg que usa HKCU (sem precisar de Admin)
-        // PowerShell -WindowStyle Hidden = sem janela visível
-        const regContent = 
-`Windows Registry Editor Version 5.00\r\n` +
-`\r\n` +
-`[HKEY_CURRENT_USER\\Software\\Classes\\abrir-pasta]\r\n` +
-`@="URL:Abrir Pasta Protocol"\r\n` +
-`"URL Protocol"=""\r\n` +
-`\r\n` +
-`[HKEY_CURRENT_USER\\Software\\Classes\\abrir-pasta\\shell]\r\n` +
-`\r\n` +
-`[HKEY_CURRENT_USER\\Software\\Classes\\abrir-pasta\\shell\\open]\r\n` +
-`\r\n` +
-`[HKEY_CURRENT_USER\\Software\\Classes\\abrir-pasta\\shell\\open\\command]\r\n` +
-`@="powershell.exe -WindowStyle Hidden -Command \\"Start-Process -FilePath ([System.Uri]::UnescapeDataString('%1') -replace '^abrir-pasta:', '')\\""` +
-`\r\n`;
-
-        const blob = new Blob([regContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'ativar-pastas.reg';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        window.utils.showToast("Arquivo baixado! Dê duplo clique e confirme 'Sim'.", "success");
-    },
-
-    // Alias for backward compatibility
-    downloadReg: function() { this.downloadInstalador(); }
+    }
 };
