@@ -26,7 +26,7 @@ window.dashboardController = {
         // 2. Proximo Edital (stat card)
         const now = new Date();
         const upcomingEditais = editais
-            .filter(e => e.dataProva && new Date(e.dataProva) >= now)
+            .filter(e => !e.ignorado && e.dataProva && new Date(e.dataProva) >= now)
             .sort((a, b) => new Date(a.dataProva) - new Date(b.dataProva));
         
         const proximo = upcomingEditais.length > 0 ? upcomingEditais[0].nome : "Nenhum";
@@ -64,6 +64,7 @@ window.dashboardController = {
         // Build list of all upcoming events (inscricao + prova) across all editais
         const events = [];
         editais.forEach(e => {
+            if (e.ignorado) return;
             if (e.dataInscricao) {
                 const d = new Date(e.dataInscricao + 'T00:00:00');
                 if (d >= now) events.push({ date: d, tipo: 'Inscrição', edital: e.nome || 'Edital' });
@@ -235,6 +236,7 @@ window.dashboardController = {
         const allMonths = new Set();
 
         editais.forEach(e => {
+            if (e.ignorado) return;
             if (e.dataInscricao) {
                 const d = new Date(e.dataInscricao);
                 const key = `${monthsNames[d.getMonth()]}/${d.getFullYear().toString().slice(-2)}`;

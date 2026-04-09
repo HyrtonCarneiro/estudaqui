@@ -25,6 +25,7 @@ window.editaisController = {
         this.inputVagas = document.getElementById('input-edital-vagas');
         this.inputLink = document.getElementById('input-edital-link');
         this.inputSearch = document.getElementById('input-search-editais');
+        this.checkIgnorado = document.getElementById('check-edital-ignorado');
         this.modalTitle = document.getElementById('edital-modal-title');
     },
 
@@ -50,6 +51,7 @@ window.editaisController = {
             this.inputNome.value = edital.nome;
             this.inputBanca.value = edital.banca || "";
             this.selectStatus.value = edital.status;
+            this.checkIgnorado.checked = !!edital.ignorado;
             
             if (edital.dataProva) {
                 this.inputData.value = edital.dataProva;
@@ -80,6 +82,7 @@ window.editaisController = {
             this.inputId.value = "";
             this.inputData.disabled = false;
             this.inputInscricao.disabled = false;
+            this.checkIgnorado.checked = false;
         }
 
         requestAnimationFrame(() => {
@@ -102,6 +105,7 @@ window.editaisController = {
             nome: this.inputNome.value,
             banca: this.inputBanca.value,
             status: this.selectStatus.value,
+            ignorado: this.checkIgnorado.checked,
             dataProva: this.checkDataIndefinida.checked ? null : this.inputData.value,
             dataInscricao: this.checkInscIndefinida.checked ? null : this.inputInscricao.value,
             salario: this.inputSalario.value,
@@ -185,6 +189,12 @@ window.editaisController = {
             if (ed.status === 'Previsto') { statusClass = 'bg-blue-500 text-white'; statusLabel = 'Previsto'; }
             if (ed.status === 'Encerrado') { statusClass = 'bg-orange-500 text-white'; statusLabel = 'Encerradas'; }
             if (ed.status === 'Finalizado') { statusClass = 'bg-gray-400 text-white'; statusLabel = 'Realizada'; }
+
+            if (ed.ignorado) {
+                statusClass = 'bg-gray-200 text-gray-500 line-through';
+                statusLabel = 'Ignorado';
+                card.className = 'bg-gray-50 p-5 rounded-[1.5rem] border border-gray-200 opacity-70 group relative overflow-hidden flex flex-col transition-all';
+            }
 
             card.innerHTML = `
                 <div class="flex-1 flex flex-col">
