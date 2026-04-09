@@ -1,22 +1,11 @@
 {
-  "version": 2,
-  "public": true,
   "headers": [
     {
       "source": "/firebase-messaging-sw.js",
       "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
+        { "key": "Service-Worker-Allowed", "value": "/" },
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     }
-  ],
-  "routes": [
-    { "handle": "filesystem" }
   ]
 }
