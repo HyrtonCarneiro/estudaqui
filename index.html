@@ -159,7 +159,6 @@
                         <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files"></i> Materiais</button>
                         <button onclick="window.appControllers.navigate('metodo')" id="nav-metodo" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-strategy"></i> Meu Método</button>
                         <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
-                        <button onclick="window.notificationService.requestPermission()" id="btn-enable-notifications" class="px-5 py-2 text-xs font-bold text-primary-500 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider md:hidden"><i class="ph-bold ph-bell-ringing"></i> Notificações</button>
                         <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check"></i> Gerenciamento</button>
                     </div>
                 </div>
@@ -180,6 +179,7 @@
                     <div>
                         <h2 class="text-3xl font-black text-gray-900 tracking-tight">Sua Evolução</h2>
                         <p class="text-gray-400 text-sm font-medium">Resumo do seu desempenho e planejamento</p>
+                        <button onclick="window.notificationService.requestPermission()" id="btn-enable-notifications" class="mt-4 px-5 py-2 text-xs font-bold text-primary-500 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider lg:hidden"><i class="ph-bold ph-bell-ringing"></i> Ativar Notificações no Celular</button>
                     </div>
                     <div id="dash-overall-progress-container" class="bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
                         <div class="text-right">
