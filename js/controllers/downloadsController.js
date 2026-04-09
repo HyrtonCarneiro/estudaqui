@@ -114,14 +114,19 @@ try {
     Write-Host "--- INSTALADOR BLINDADO ConcursosTI ---" -ForegroundColor Yellow
     
     Write-Host "1. Faxina profunda de processos e inicializacao..." -ForegroundColor Cyan
-    # Encerra qualquer PowerShell que possa ser o monitor
-    taskkill /F /IM powershell.exe /FI "WINDOWTITLE eq *AnkiMonitor*" /T 2>$null
-    $procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*anki-monitor.ps1*" }
-    foreach ($p in $procs) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+    # Sweep BROAD: Encerra QUALQUER processo PowerShell que tenha 'anki-monitor' no comando
+    $procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*anki-monitor*" }
+    foreach ($p in $procs) { 
+        Write-Host "Encerrando processo antigo: $($p.ProcessId)" -ForegroundColor Gray
+        Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue 
+    }
+    # Backup por titulo de janela (especifico do monitor rodando oculto via VBS/WScript)
+    taskkill /F /IM powershell.exe /FI "WINDOWTITLE eq *AnkiMonitor*" /T 2>$null | Out-Null
+    taskkill /F /IM wscript.exe /FI "COMMANDLINE eq *anki-monitor*" /T 2>$null | Out-Null
 
-    # Limpa QUALQUER arquivo relacionado ao anki na pasta de inicializacao
-    if (Test-Path "$startupDir\\anki*.*") { Remove-Item "$startupDir\\anki*.*" -Force -ErrorAction SilentlyContinue }
-    if (Test-Path "$startupDir\\monitor*.*") { Remove-Item "$startupDir\\monitor*.*" -Force -ErrorAction SilentlyContinue }
+    # Limpa QUALQUER arquivo relacionado ao anki na pasta de inicializacao para evitar duplicidade no boot
+    Get-ChildItem "$startupDir" -Filter "anki*" | Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem "$startupDir" -Filter "monitor*" | Remove-Item -Force -ErrorAction SilentlyContinue
 
     Write-Host "2. Preparando pasta de destino..." -ForegroundColor Cyan
     if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force -ErrorAction SilentlyContinue }

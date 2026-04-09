@@ -16,13 +16,14 @@ firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/images/icon-192x192.png' // A user pode criar depois se quiser, não quebra sem
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+// Forçar atualização do Service Worker imediatamente após nova versão
+self.addEventListener('install', () => {
+    self.skipWaiting();
 });
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim());
+});
+
+// NOTA: onBackgroundMessage removido para evitar duplicidade.
+// O FCM já exibe notificações automaticamente quando o payload contém a propriedade 'notification'.
