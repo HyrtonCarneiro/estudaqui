@@ -109,13 +109,25 @@ echo         $config = Get-Content $configFile ^| ConvertFrom-Json
 echo         $hoje = Get-Date -Format "yyyy-MM-dd"
 echo.
 echo         if ($config.lastNotifiedDate -ne $hoje^) {
-echo             $bodyAnki = @{ action = 'findCards'; version = 6; params = @{ query = 'is:due' } } ^| ConvertTo-Json
-echo             $resp = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $bodyAnki -ErrorAction Stop
-echo             $count = $resp.result.Count
+echo             # 1. Busca detas dos cards (Novos, Aprender, Revisar)
+echo             $qNew = @{ action = 'findCards'; version = 6; params = @{ query = 'is:new' } } ^| ConvertTo-Json
+echo             $qLrn = @{ action = 'findCards'; version = 6; params = @{ query = 'is:learn' } } ^| ConvertTo-Json
+echo             $qRev = @{ action = 'findCards'; version = 6; params = @{ query = 'is:review is:due' } } ^| ConvertTo-Json
 echo.
-echo             if ($count -gt 0^) {
-echo                 Log-Msg "Detectados $count cards. Enviando push..."
-echo                 $bodyPush = @{ token = $config.fcmToken; title = 'Estudos Pendentes'; body = "Voce tem $count cards pendentes no Anki!" } ^| ConvertTo-Json
+echo             $rNew = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qNew -ErrorAction Stop
+echo             $rLrn = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qLrn -ErrorAction Stop
+echo             $rRev = Invoke-RestMethod -Uri 'http://localhost:8765' -Method Post -Body $qRev -ErrorAction Stop
+echo.
+echo             $cNew = $rNew.result.Count
+echo             $cLrn = $rLrn.result.Count
+echo             $cRev = $rRev.result.Count
+echo             $total = $cNew + $cLrn + $cRev
+echo.
+echo             if ($total -gt 0^) {
+echo                 Log-Msg "Detectados $total cards. Enviando push..."
+echo                 $bodyText = "Voce tem $total cards pendentes: Novos: $cNew | Aprender: $cLrn | Revisar: $cRev"
+echo                 $bodyPush = @{ token = $config.fcmToken; title = 'Estudos Pendentes 📚'; body = $bodyText } ^| ConvertTo-Json
+echo.
 echo                 Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json" -ErrorAction Stop
 echo                 Log-Msg "Push enviado com sucesso!"
 echo                 $config.lastNotifiedDate = $hoje
