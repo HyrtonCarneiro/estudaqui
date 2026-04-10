@@ -245,10 +245,17 @@ window.dashboardController = {
 
         const inscricoesMap = {};
         const provasMap = {};
+        const hojeMap = {};
+        
+        const todayKey = `${monthsNames[currentMonth]}/${currentYear.toString().slice(-2)}`;
+        
         sortedLabels.forEach(l => {
             inscricoesMap[l] = [];
             provasMap[l] = [];
+            hojeMap[l] = [];
         });
+
+        hojeMap[todayKey] = [{ date: now, nome: 'Data Atual', tipo: 'Hoje' }];
 
         editais.forEach(e => {
             if (e.ignorado) return;
@@ -270,6 +277,7 @@ window.dashboardController = {
 
         const dataInsc = sortedLabels.map(l => inscricoesMap[l].length);
         const dataProva = sortedLabels.map(l => provasMap[l].length);
+        const dataHoje = sortedLabels.map(l => l === todayKey ? 0 : null);
 
         const maxEvents = Math.max(...dataInsc, ...dataProva, 0);
 
@@ -278,6 +286,17 @@ window.dashboardController = {
             data: {
                 labels: sortedLabels,
                 datasets: [
+                    {
+                        label: 'Hoje',
+                        data: dataHoje,
+                        eventsMap: hojeMap,
+                        borderColor: '#0f172a',
+                        backgroundColor: '#0f172a',
+                        tension: 0,
+                        fill: false,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#0f172a'
+                    },
                     {
                         label: 'Inscrições',
                         data: dataInsc,
@@ -338,9 +357,11 @@ window.dashboardController = {
                         align: 'top',
                         textAlign: 'center',
                         formatter: (val, context) => {
-                            if (val === 0) return '';
+                            if (val === null) return '';
                             const label = context.chart.data.labels[context.dataIndex];
-                            const events = context.dataset.eventsMap[label];
+                            const map = context.dataset.eventsMap;
+                            if (!map) return '';
+                            const events = map[label];
                             if (!events || events.length === 0) return '';
                             return events.map(e => {
                                 const dd = String(e.date.getDate()).padStart(2, '0');
