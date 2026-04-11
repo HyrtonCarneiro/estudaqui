@@ -161,6 +161,7 @@
                         <button onclick="window.appControllers.navigate('metodo')" id="nav-metodo" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-strategy"></i> Meu Método</button>
                         <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
                         <button onclick="window.appControllers.navigate('downloads')" id="nav-downloads" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-download-simple"></i> Downloads</button>
+                        <button onclick="window.appControllers.navigate('anki')" id="nav-anki" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-cards"></i> Anki</button>
                         <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check"></i> Gerenciamento</button>
                     </div>
                 </div>
@@ -787,6 +788,95 @@
                 </div>
             </section>
 
+            <!-- Anki Dashboard Page -->
+            <section id="page-anki" class="page-section hidden page-transition">
+                <div class="mb-10 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-3xl font-black text-gray-900 tracking-tight">Estatísticas do Anki</h2>
+                        <p class="text-gray-400 text-sm font-medium">Relatórios gerados pelo seu perfil local</p>
+                    </div>
+                    <button id="btn-anki-retry" class="text-xs uppercase tracking-widest font-black text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-xl transition-all flex items-center gap-2"><i class="ph-bold ph-arrows-clockwise"></i> Atualizar Dados</button>
+                </div>
+
+                <!-- Error State -->
+                <div id="anki-error-container" class="hidden bg-red-50 border border-red-100 p-8 rounded-[2.5rem] flex flex-col items-center justify-center text-center">
+                    <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-red-500 mb-6 shadow-sm">
+                        <i class="ph-fill ph-warning-circle text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-gray-800 mb-2">AnkiConnect Inacessível</h3>
+                    <p class="text-gray-500 text-sm max-w-md">Não foi possível conectar ao Anki. O aplicativo do Anki precisa estar <b>ABERTO</b> e o add-on AnkiConnect deve estar devidamente configurado na porta 8765 e o webCorsOriginList setado para `*`.</p>
+                </div>
+
+                <!-- App State -->
+                <div id="anki-app-container" class="hidden">
+                    
+                    <!-- Stats Overview -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
+                            <div class="absolute -top-4 -right-4 w-20 h-20 bg-blue-50/50 rounded-full blur-xl"></div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Revisões para Hoje</p>
+                            <p id="anki-stat-due" class="text-4xl font-black text-blue-600 relative z-10">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
+                            <div class="absolute -top-4 -right-4 w-20 h-20 bg-green-50/50 rounded-full blur-xl"></div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Estudados Hoje</p>
+                            <p id="anki-stat-studied" class="text-4xl font-black text-green-600 relative z-10">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
+                            <div class="absolute -top-4 -right-4 w-20 h-20 bg-purple-50/50 rounded-full blur-xl"></div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Novos Cartões Totais</p>
+                            <p id="anki-stat-new" class="text-4xl font-black text-purple-600 relative z-10">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Heatmap e Workload -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                        <!-- Heatmap -->
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
+                            <h3 class="text-lg font-black text-gray-800 mb-2 flex items-center gap-2">
+                                <i class="ph-fill ph-calendar-check text-green-500"></i> Frequência de Revisões
+                            </h3>
+                            <p class="text-xs text-gray-400 mb-8 font-medium">Seu histórico dos últimos 180 dias</p>
+                            
+                            <div class="w-full overflow-x-auto pb-4 custom-scrollbar">
+                                <div id="anki-heatmap-grid" class="flex flex-col flex-wrap gap-1 content-start" style="height: 100px;">
+                                    <!-- Dinâmico JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Workload -->
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
+                            <h3 class="text-lg font-black text-gray-800 mb-2 flex items-center gap-2">
+                                <i class="ph-fill ph-trend-up text-blue-500"></i> Previsão de Carga
+                            </h3>
+                            <p class="text-xs text-gray-400 mb-8 font-medium">Revisões agendadas para as próximas semanas</p>
+                            
+                            <div class="h-48 relative">
+                                <canvas id="chart-anki-workload"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tag Performance -->
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                            <div>
+                                <h3 class="text-lg font-black text-gray-800 mb-1 flex items-center gap-2">
+                                    <i class="ph-fill ph-chart-pie text-red-500"></i> Matérias mais Críticas
+                                </h3>
+                                <p class="text-xs text-gray-400 font-medium">Assuntos com mais erros históricos</p>
+                            </div>
+                            <div class="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg">Baseado na contagem de "Erros/Again"</div>
+                        </div>
+                        <div class="h-72 flex justify-center">
+                            <canvas id="chart-anki-lapses"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
             <!-- Admin / User Management Page -->
             <section id="page-admin" class="page-section hidden page-transition">
                 <div class="mb-10">
@@ -998,6 +1088,8 @@
     <script src="js/controllers/linksController.js"></script>
     <script src="js/controllers/downloadsController.js"></script>
     <script src="js/controllers/metodoController.js"></script>
+    <script src="js/logic/ankiApi.js"></script>
+    <script src="js/controllers/ankiController.js"></script>
     <script src="js/controllers/main.js"></script>
 
     <!-- Pre-register Firebase SW on page load so it's active when notifications are requested -->

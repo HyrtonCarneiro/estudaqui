@@ -87,7 +87,7 @@ window.appControllers = {
         }
         
         // Update nav buttons styling
-        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links', 'downloads'];
+        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links', 'downloads', 'anki'];
         navs.forEach(nav => {
             const btn = document.getElementById('nav-' + nav);
             if (btn) {
@@ -128,6 +128,9 @@ window.appControllers = {
         }
         if (pageId === 'downloads') {
             if (window.downloadsController) window.downloadsController.render();
+        }
+        if (pageId === 'anki') {
+            if (window.ankiController) window.ankiController.init();
         }
     },
 
