@@ -256,5 +256,14 @@ window.ankiApi = {
             console.warn("Failed to get next intervals:", e);
             return null;
         }
+    },
+
+    async getDeckConfig(deckName) {
+        try {
+            return await this.invoke('getDeckConfig', 6, { deck: deckName });
+        } catch (e) {
+            console.error("Failed to get deck config:", e);
+            return null;
+        }
     }
 };

@@ -190,8 +190,15 @@ window.ankiController = {
 
         if (!aContainer.classList.contains('hidden')) return;
 
-        // Fetch and show prediction intervals
-        const intervals = await window.ankiApi.getNextIntervals(this.currentCard.cardId);
+        // Try to get exact intervals from API first
+        let intervals = await window.ankiApi.getNextIntervals(this.currentCard.cardId);
+        
+        // Fallback to manual calculation if API fails or returns null
+        if (!intervals) {
+            const config = await window.ankiApi.getDeckConfig(this.currentCard.deckName);
+            intervals = this.calculateNextIntervals(this.currentCard, config);
+        }
+
         if (intervals && intervals.length === 4) {
             const labels = document.querySelectorAll('#anki-answer-buttons button .interval-label');
             labels.forEach((el, idx) => {
@@ -209,6 +216,50 @@ window.ankiController = {
         aContainer.classList.remove('hidden');
         btnShow.classList.add('hidden');
         btnAnswers.classList.remove('hidden');
+    },
+
+    formatTime: function(seconds) {
+        if (seconds < 60) return `< 1min`;
+        if (seconds < 3600) return `${Math.round(seconds / 60)}min`;
+        if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
+        const days = Math.round(seconds / 86400);
+        if (days < 30) return `${days}dia(s)`;
+        if (days < 365) return `${Math.round(days / 30)}mês(es)`;
+        return `${Math.round(days / 365)}ano(s)`;
+    },
+
+    calculateNextIntervals: function(card, config) {
+        if (!config) return ["---", "---", "---", "---"];
+        
+        // Use basic SM-2 algorithm approximation
+        const type = card.type; // 0=new, 1=learn, 2=review, 3=relearn
+        const ivl = card.ivl || 1;
+        const ease = card.factor || 2500;
+        const easeFactor = ease / 1000;
+        
+        if (type === 2) { // Review card
+            const hardBonus = 1.2;
+            const ease4Bonus = config.rev ? config.rev.ease4 || 1.3 : 1.3;
+            
+            return [
+                "10min",
+                this.formatTime(ivl * hardBonus * 86400),
+                this.formatTime(ivl * easeFactor * 86400),
+                this.formatTime(ivl * easeFactor * ease4Bonus * 86400)
+            ];
+        } else {
+            // New or Learning
+            const delays = (config.new && config.new.delays) ? config.new.delays : [1, 10];
+            const graduatingIvl = (config.new && config.new.ints) ? config.new.ints[0] : 1;
+            const easyIvl = (config.new && config.new.ints) ? config.new.ints[1] : 4;
+            
+            return [
+                this.formatTime(delays[0] * 60),
+                this.formatTime(((delays[0] + (delays[1] || delays[0])) / 2) * 60),
+                this.formatTime((delays[1] || delays[0]) * 60),
+                this.formatTime(easyIvl * 86400)
+            ];
+        }
     },
 
     submitAnswer: async function(ease) {
