@@ -95,48 +95,54 @@ window.ankiController = {
     },
 
     startStudySession: async function() {
-        const sessionContainer = document.getElementById('anki-study-session');
-        const box = document.getElementById('anki-card-box');
-        const empty = document.getElementById('anki-card-empty');
-        const qEl = document.getElementById('anki-card-question');
-        const aContainer = document.getElementById('anki-card-answer-container');
-        const btnShow = document.getElementById('btn-anki-show-answer');
-        const btnAnswers = document.getElementById('anki-answer-buttons');
-        const progressEl = document.getElementById('anki-study-progress');
+        try {
+            const sessionContainer = document.getElementById('anki-study-session');
+            const box = document.getElementById('anki-card-box');
+            const empty = document.getElementById('anki-card-empty');
+            const qEl = document.getElementById('anki-card-question');
+            const aContainer = document.getElementById('anki-card-answer-container');
+            const btnShow = document.getElementById('btn-anki-show-answer');
+            const btnAnswers = document.getElementById('anki-answer-buttons');
+            const progressEl = document.getElementById('anki-study-progress');
 
-        sessionContainer.classList.remove('hidden');
-        
-        this.currentCard = await window.ankiApi.getNextDueCard();
-        
-        if (!this.currentCard) {
-            qEl.classList.add('hidden');
-            aContainer.classList.add('hidden');
-            btnShow.classList.add('hidden');
-            btnAnswers.classList.add('hidden');
-            empty.classList.remove('hidden');
-            progressEl.textContent = "FILA ZERADA! 🎉";
+            sessionContainer.classList.remove('hidden');
             
-            // Celebration
-            Swal.fire({
-                title: 'Parabéns!',
-                text: 'Você concluiu todas as revisões agendadas.',
-                icon: 'success',
-                confirmButtonText: 'Sensacional!',
-                confirmButtonColor: '#3b82f6',
-                backdrop: `rgba(0,0,123,0.4) url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R3Yng0Z2t3Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z/3o7TKSjP3gZ4XF8f6u/giphy.gif") left top no-repeat`
-            });
-            return;
-        }
+            this.currentCard = await window.ankiApi.getNextDueCard();
+            
+            if (!this.currentCard) {
+                qEl.classList.add('hidden');
+                aContainer.classList.add('hidden');
+                btnShow.classList.add('hidden');
+                btnAnswers.classList.add('hidden');
+                empty.classList.remove('hidden');
+                progressEl.textContent = "FILA ZERADA! 🎉";
+                
+                // Celebration
+                Swal.fire({
+                    title: 'Parabéns!',
+                    text: 'Você concluiu todas as revisões agendadas.',
+                    icon: 'success',
+                    confirmButtonText: 'Sensacional!',
+                    confirmButtonColor: '#3b82f6',
+                    backdrop: `rgba(0,0,123,0.4) url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R3Yng0Z2t3Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z/3o7TKSjP3gZ4XF8f6u/giphy.gif") left top no-repeat`
+                });
+                return;
+            }
 
-        // Setup card UI
-        empty.classList.add('hidden');
-        qEl.classList.remove('hidden');
-        qEl.innerHTML = this.formatContent(this.currentCard.fields.Front.value, true);
-        aContainer.classList.add('hidden');
-        btnShow.classList.remove('hidden');
-        btnAnswers.classList.add('hidden');
-        
-        progressEl.textContent = `DECK: ${this.currentCard.deckName} | ID: ${this.currentCard.cardId}`;
+            // Setup card UI
+            empty.classList.add('hidden');
+            qEl.classList.remove('hidden');
+            const frontContent = this.getCardField(this.currentCard, 'q');
+            qEl.innerHTML = this.formatContent(frontContent, true);
+            aContainer.classList.add('hidden');
+            btnShow.classList.remove('hidden');
+            btnAnswers.classList.add('hidden');
+            
+            progressEl.textContent = `DECK: ${this.currentCard.deckName} | ID: ${this.currentCard.cardId}`;
+        } catch (e) {
+            console.error("Erro na sessão de estudo:", e);
+            document.getElementById('anki-card-question').innerHTML = `<p class="text-sm text-red-400 font-bold">Erro ao processar card.<br><span class="text-[10px] opacity-70">Verifique se o card possui campos de texto válidos.</span></p>`;
+        }
     },
 
     formatContent: function(text, isFront) {
@@ -154,6 +160,27 @@ window.ankiController = {
         }
     },
 
+    // Helper to find field content regardless of name (Front/Frente/Text/etc)
+    getCardField: function(card, type) {
+        if (!card || !card.fields) return '';
+        
+        const fields = card.fields;
+        const qNames = ['Front', 'Frente', 'Text', 'Pergunta', 'Question', 'Question (Front)'];
+        const aNames = ['Back', 'Verso', 'Extra', 'Resposta', 'Answer', 'Answer (Back)'];
+        
+        const targets = type === 'q' ? qNames : aNames;
+        
+        // Try known matches first
+        for (const name of targets) {
+            if (fields[name]) return fields[name].value;
+        }
+        
+        // Fallback: use first field for Q, second for A
+        const allKeys = Object.keys(fields);
+        if (type === 'q') return fields[allKeys[0]] ? fields[allKeys[0]].value : '';
+        return fields[allKeys[1]] ? fields[allKeys[1]].value : (fields[allKeys[0]] ? fields[allKeys[0]].value : '');
+    },
+
     revealAnswer: function() {
         if (!this.currentCard) return;
         const aContainer = document.getElementById('anki-card-answer-container');
@@ -164,10 +191,12 @@ window.ankiController = {
         if (!aContainer.classList.contains('hidden')) return;
 
         // In cloze cards, we usually show the front formatted for answer + the back field
-        const frontFormatted = this.formatContent(this.currentCard.fields.Front.value, false);
-        const backContent = this.currentCard.fields.Back ? this.currentCard.fields.Back.value : '';
+        const frontRaw = this.getCardField(this.currentCard, 'q');
+        const backRaw = this.getCardField(this.currentCard, 'a');
         
-        aEl.innerHTML = `${frontFormatted}<div class="mt-6 pt-6 border-t border-white/5 opacity-80">${backContent}</div>`;
+        const frontFormatted = this.formatContent(frontRaw, false);
+        
+        aEl.innerHTML = `${frontFormatted}<div class="mt-6 pt-6 border-t border-white/5 opacity-80">${backRaw}</div>`;
         aContainer.classList.remove('hidden');
         btnShow.classList.add('hidden');
         btnAnswers.classList.remove('hidden');
@@ -197,33 +226,49 @@ window.ankiController = {
     openEditModal: function() {
         if (!this.currentCard) return;
         
+        const front = this.getCardField(this.currentCard, 'q');
+        const back = this.getCardField(this.currentCard, 'a');
+
         document.getElementById('anki-edit-note-id').value = this.currentCard.note;
-        document.getElementById('anki-edit-front').value = this.currentCard.fields.Front.value;
-        document.getElementById('anki-edit-back').value = this.currentCard.fields.Back.value;
+        document.getElementById('anki-edit-front').value = front;
+        document.getElementById('anki-edit-back').value = back;
         
         document.getElementById('modal-anki-edit-card').classList.remove('hidden');
     },
 
     saveCardEdit: async function() {
         const noteId = document.getElementById('anki-edit-note-id').value;
-        const front = document.getElementById('anki-edit-front').value;
-        const back = document.getElementById('anki-edit-back').value;
+        const frontContent = document.getElementById('anki-edit-front').value;
+        const backContent = document.getElementById('anki-edit-back').value;
 
         try {
-            await window.ankiApi.updateCardFields(noteId, {
-                Front: front,
-                Back: back
-            });
+            // We need to know which field names to update. 
+            // In AnkiConnect updateNoteFields, we MUST specify the actual names.
+            const fieldsToUpdate = {};
+            const fields = this.currentCard.fields;
+            const allKeys = Object.keys(fields);
+            
+            // Try to map back intelligently
+            const qNames = ['Front', 'Frente', 'Text', 'Pergunta'];
+            const aNames = ['Back', 'Verso', 'Extra', 'Resposta'];
+            
+            let qField = allKeys.find(k => qNames.includes(k)) || allKeys[0];
+            let aField = allKeys.find(k => aNames.includes(k)) || (allKeys[1] || allKeys[0]);
+
+            fieldsToUpdate[qField] = frontContent;
+            if (qField !== aField) fieldsToUpdate[aField] = backContent;
+
+            await window.ankiApi.updateCardFields(noteId, fieldsToUpdate);
             
             document.getElementById('modal-anki-edit-card').classList.add('hidden');
             
-            // Re-fetch current card data to update UI
-            this.currentCard.fields.Front.value = front;
-            this.currentCard.fields.Back.value = back;
+            // Update local state and UI
+            fields[qField].value = frontContent;
+            if (fields[aField]) fields[aField].value = backContent;
             
-            document.getElementById('anki-card-question').innerHTML = front;
+            document.getElementById('anki-card-question').innerHTML = this.formatContent(frontContent, true);
             if (!document.getElementById('anki-card-answer-container').classList.contains('hidden')) {
-                document.getElementById('anki-card-answer').innerHTML = back;
+                document.getElementById('anki-card-answer').innerHTML = backContent;
             }
             
             Swal.fire({
