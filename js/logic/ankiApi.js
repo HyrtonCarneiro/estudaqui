@@ -85,26 +85,27 @@ window.ankiApi = {
         }
     },
 
-    async getWorkloadForecast(days = 7) {
+    async getWorkloadForecast(days = 30) {
         try {
             const forecast = [];
-            
-            // Today's reviews
-            const todayReviews = await this.invoke('findCards', 6, { query: 'is:due -is:new' });
-            forecast.push({ day: 'Hoje', count: todayReviews.length });
+            const labels = [];
+            const todayObj = new Date();
 
-            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            let todayObj = new Date();
-
-            // Next days
-            for (let i = 1; i < days; i++) {
+            for (let i = 0; i < days; i++) {
+                const query = (i === 0) ? 'is:due -is:new' : `prop:due=${i}`;
+                const cards = await this.invoke('findCards', 6, { query });
+                
                 const nextDate = new Date(todayObj);
                 nextDate.setDate(todayObj.getDate() + i);
-                const dayName = diasSemana[nextDate.getDay()];
                 
-                // Query for cards due exactly in `i` days
-                const cards = await this.invoke('findCards', 6, { query: `prop:due=${i}` });
-                forecast.push({ day: dayName, count: cards.length });
+                let dayLabel;
+                if (i === 0) dayLabel = 'Hoje';
+                else if (i === 1) dayLabel = 'Amanhã';
+                else {
+                    dayLabel = `${nextDate.getDate()}/${nextDate.getMonth() + 1}`;
+                }
+
+                forecast.push({ day: dayLabel, count: cards.length });
             }
 
             return forecast;
@@ -120,30 +121,73 @@ window.ankiApi = {
             const learnToday = await this.invoke('findCards', 6, { query: 'is:learn' });
             const newToday = await this.invoke('findCards', 6, { query: 'is:new' });
             
-            // To find how many studied today, we can get today from Heatmap
-            const heatmap = await this.getHeatmapData();
-            // Get today date formatted as YYYY-MM-DD
-            const todayObj = new Date();
-            const yyyy = todayObj.getFullYear();
-            const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
-            const dd = String(todayObj.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-            
+            // Get today's reviews to calculate time
+            const reviewsToday = await this.invoke('getReviewsOfCards', 6, { 
+                cards: await this.invoke('findCards', 6, { query: 'rated:1' }) 
+            });
+
             let studiedToday = 0;
-            const todayEntry = heatmap.find(entry => entry[0] === todayStr);
-            if (todayEntry) {
-                studiedToday = todayEntry[1];
-            }
+            let timeTodayMs = 0;
+            const todayStart = new Date().setHours(0,0,0,0);
+
+            Object.values(reviewsToday).forEach(cardReviews => {
+                cardReviews.forEach(rev => {
+                    if (rev.id >= todayStart) {
+                        studiedToday++;
+                        timeTodayMs += rev.time;
+                    }
+                });
+            });
 
             return {
                 due: dueToday.length,
                 learn: learnToday.length,
                 newCards: newToday.length,
-                studied: studiedToday
+                studied: studiedToday,
+                timeMs: timeTodayMs,
+                avgMs: studiedToday > 0 ? timeTodayMs / studiedToday : 0
             };
         } catch (e) {
             console.warn("Could not get today's stats fully: ", e);
-            return { due: 0, learn: 0, newCards: 0, studied: 0 };
+            return { due: 0, learn: 0, newCards: 0, studied: 0, timeMs: 0, avgMs: 0 };
+        }
+    },
+
+    async getSyllabusData() {
+        try {
+            const materias = await this.invoke('findCards', 6, { query: 'tag:*' });
+            const cardsInfo = await this.invoke('cardsInfo', 6, { cards: materias });
+            
+            const syllabus = {};
+            const ignoreTags = ['leech', 'marked', 'import'];
+
+            cardsInfo.forEach(card => {
+                if (!card.tags) return;
+                card.tags.forEach(tag => {
+                    if (ignoreTags.some(t => tag.toLowerCase().includes(t))) return;
+
+                    const cleanTag = tag.replace(/_/g, ' ').replace(/-/g, ' ');
+                    const finalTag = cleanTag.charAt(0).toUpperCase() + cleanTag.slice(1);
+
+                    if (!syllabus[finalTag]) {
+                        syllabus[finalTag] = { new: 0, young: 0, mature: 0, total: 0, lapses: 0 };
+                    }
+
+                    syllabus[finalTag].total++;
+                    syllabus[finalTag].lapses += (card.lapses || 0);
+
+                    // Determine status
+                    if (card.queue < 0) return; // suspended/buried
+                    if (card.type === 0) syllabus[finalTag].new++;
+                    else if (card.ivl >= 21) syllabus[finalTag].mature++;
+                    else syllabus[finalTag].young++;
+                });
+            });
+
+            return syllabus;
+        } catch (e) {
+            console.error("Error getting syllabus data", e);
+            return {};
         }
     }
 };

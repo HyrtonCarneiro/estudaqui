@@ -39,8 +39,54 @@ window.ankiController = {
         
         await this.updateStats();
         await this.renderHeatmap();
+        await this.renderSyllabus();
         await this.renderTagPerformance();
         await this.renderWorkloadForecast();
+    },
+
+    renderSyllabus: async function() {
+        const container = document.getElementById('anki-syllabus-list');
+        if (!container) return;
+
+        container.innerHTML = '<div class="flex items-center justify-center p-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div></div>';
+
+        const data = await window.ankiApi.getSyllabusData();
+        container.innerHTML = '';
+
+        const materias = Object.keys(data).sort((a,b) => data[b].total - data[a].total);
+
+        if (materias.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-400 text-sm py-10">Nenhuma matéria com cards encontrada.</p>';
+            return;
+        }
+
+        materias.forEach(subject => {
+            const stats = data[subject];
+            const matCard = document.createElement('div');
+            matCard.className = 'bg-gray-50 rounded-2xl p-4 border border-gray-100 hover:border-primary-200 transition-all group';
+            
+            const youngPerc = Math.round((stats.young / stats.total) * 100);
+            const maturePerc = Math.round((stats.mature / stats.total) * 100);
+            const newPerc = 100 - youngPerc - maturePerc;
+
+            matCard.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="text-xs font-black text-gray-800 uppercase tracking-tight">${subject}</h4>
+                    <span class="text-[9px] font-bold text-gray-400">${stats.total} cards</span>
+                </div>
+                <div class="flex h-1.5 w-full rounded-full overflow-hidden bg-gray-200 mb-2">
+                    <div class="bg-green-500 h-full" style="width: ${maturePerc}%"></div>
+                    <div class="bg-blue-400 h-full" style="width: ${youngPerc}%"></div>
+                    <div class="bg-gray-300 h-full" style="width: ${newPerc}%"></div>
+                </div>
+                <div class="flex justify-between text-[9px] font-bold">
+                    <div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Maduros ${maturePerc}%</div>
+                    <div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Jovens ${youngPerc}%</div>
+                    <div class="flex items-center gap-1 text-red-500"><i class="ph-bold ph-warning"></i> ${stats.lapses} falhas</div>
+                </div>
+            `;
+            container.appendChild(matCard);
+        });
     },
 
     updateStats: async function() {
@@ -48,52 +94,70 @@ window.ankiController = {
         
         const elDue = document.getElementById('anki-stat-due');
         const elLearn = document.getElementById('anki-stat-learn');
-        const elStudied = document.getElementById('anki-stat-studied');
         const elNew = document.getElementById('anki-stat-new');
+        const elTime = document.getElementById('anki-stat-time');
+        const elAvg = document.getElementById('anki-stat-avg');
 
         if (elDue) elDue.textContent = stats.due;
         if (elLearn) elLearn.textContent = stats.learn;
-        if (elStudied) elStudied.textContent = stats.studied;
         if (elNew) elNew.textContent = stats.newCards;
+        
+        if (elTime) {
+            const mins = Math.round(stats.timeMs / 60000);
+            elTime.textContent = mins + 'm';
+        }
+        
+        if (elAvg) {
+            const secs = Math.round(stats.avgMs / 1000);
+            elAvg.textContent = secs + 's';
+        }
     },
 
     renderHeatmap: async function() {
         const heatmapData = await window.ankiApi.getHeatmapData();
         const container = document.getElementById('anki-heatmap-grid');
+        const elStreak = document.getElementById('anki-heatmap-streak');
+        const elTotal = document.getElementById('anki-heatmap-total');
         if (!container) return;
         
         container.innerHTML = '';
+        
+        let totalReviews = 0;
+        let streak = 0;
+        let currentStreakCount = 0;
         
         // Transform array to a map for easy lookup
         const records = {};
         let maxReviews = 1;
         heatmapData.forEach(entry => {
             records[entry[0]] = entry[1];
+            totalReviews += entry[1];
             if (entry[1] > maxReviews) maxReviews = entry[1];
         });
 
-        // Let's generate last 180 days
+        // Calculate current streak
         const today = new Date();
+        const checkDate = new Date(today);
+        while (records[`${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`] > 0) {
+            currentStreakCount++;
+            checkDate.setDate(checkDate.getDate() - 1);
+        }
+        
+        if (elStreak) elStreak.textContent = currentStreakCount;
+        if (elTotal) elTotal.textContent = totalReviews >= 1000 ? (totalReviews/1000).toFixed(1) + 'k' : totalReviews;
+
         const daysToRender = 180;
-        
-        // CSS Grid structure: columns are weeks (approx 180/7 = 26 cols), rows are days (7)
-        // Heatmap should render columns from left (past) to right (today)
-        
         for (let i = daysToRender; i >= 0; i--) {
             const d = new Date(today);
             d.setDate(today.getDate() - i);
             
-            // Formato YYYY-MM-DD para busca
             const formatStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            // Formato DD/MM/YYYY para tooltip
             const displayStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
             
             const count = records[formatStr] || 0;
-            
             const box = document.createElement('div');
             box.className = 'w-3 h-3 rounded-sm transition-all hover:scale-125 hover:z-10 cursor-pointer relative group';
             
-            // Determine color intensity
             if (count === 0) {
                 box.classList.add('bg-gray-100');
             } else {
@@ -104,12 +168,10 @@ window.ankiController = {
                 else box.classList.add('bg-green-800');
             }
 
-            // Tooltip
             const tooltip = document.createElement('div');
             tooltip.className = 'absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-[9px] whitespace-nowrap rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20';
             tooltip.textContent = `${count} revs em ${displayStr}`;
             box.appendChild(tooltip);
-
             container.appendChild(box);
         }
     },
@@ -188,7 +250,7 @@ window.ankiController = {
         const ctx = document.getElementById('chart-anki-workload');
         if (!ctx) return;
 
-        const forecastData = await window.ankiApi.getWorkloadForecast(14); // 14 days forecast
+        const forecastData = await window.ankiApi.getWorkloadForecast(28); // 28 days forecast
         
         const labels = forecastData.map(d => d.day);
         const data = forecastData.map(d => d.count);
@@ -204,23 +266,44 @@ window.ankiController = {
                 datasets: [{
                     label: 'Revisões Devidas',
                     data: data,
-                    backgroundColor: '#3b5df5',
-                    borderRadius: 6,
-                    barPercentage: 0.6
+                    backgroundColor: forecastData.map((d, i) => i === 0 ? '#3b82f6' : '#e5e7eb'),
+                    hoverBackgroundColor: '#3b82f6',
+                    borderRadius: 4,
+                    barPercentage: 0.8
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#f3f4f6' }, border: { dash: [4, 4] } },
-                    x: { grid: { display: false } }
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: '#f9fafb' }, 
+                        ticks: { font: { size: 9, family: 'Outfit' } } 
+                    },
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { 
+                            font: { size: 9, family: 'Outfit' },
+                            maxRotation: 0,
+                            callback: function(val, index) {
+                                // Show only every 3rd label for better readability if many days
+                                return index % 3 === 0 ? this.getLabelForValue(val) : '';
+                            }
+                        } 
+                    }
                 },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        callbacks: {
-                            label: function(context) { return context.raw + ' cartões'; }
+                        backgroundColor: '#111827',
+                        padding: 12,
+                        titleFont: { size: 10, family: 'Outfit', weight: '900' },
+                        bodyFont: { size: 12, family: 'Outfit' },
+                        displayColors: false,
+                        callbacks: { 
+                            title: function(items) { return items[0].label; },
+                            label: function(context) { return ' ' + context.raw + ' cartões devidos'; } 
                         }
                     },
                     datalabels: { display: false }

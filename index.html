@@ -810,8 +810,8 @@
                 <!-- App State -->
                 <div id="anki-app-container" class="hidden">
                     
-                    <!-- Stats Overview -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                    <!-- Stats Overview (Study Time & Counts) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-10">
                         <!-- Novos -->
                         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
                             <div class="absolute -top-4 -right-4 w-20 h-20 bg-purple-50/50 rounded-full blur-xl"></div>
@@ -821,33 +821,53 @@
                         <!-- Em Aprendizado -->
                         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
                             <div class="absolute -top-4 -right-4 w-20 h-20 bg-orange-50/50 rounded-full blur-xl"></div>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Em Aprendizado</p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Aprender</p>
                             <p id="anki-stat-learn" class="text-4xl font-black text-orange-600 relative z-10">0</p>
                         </div>
                         <!-- Revisões -->
                         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
                             <div class="absolute -top-4 -right-4 w-20 h-20 bg-blue-50/50 rounded-full blur-xl"></div>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Revisões</p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Revisar</p>
                             <p id="anki-stat-due" class="text-4xl font-black text-blue-600 relative z-10">0</p>
                         </div>
-                        <!-- Estudados Hoje -->
-                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden">
+                        <!-- Tempo Total -->
+                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden bg-primary-600 group hover:bg-primary-700 transition-colors">
+                            <div class="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
+                            <p class="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1 relative z-10">Tempo Hoje</p>
+                            <p id="anki-stat-time" class="text-4xl font-black text-white relative z-10">0m</p>
+                        </div>
+                        <!-- Média por Card -->
+                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col pt-8 relative overflow-hidden hidden xl:flex">
                             <div class="absolute -top-4 -right-4 w-20 h-20 bg-green-50/50 rounded-full blur-xl"></div>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Estudados Hoje</p>
-                            <p id="anki-stat-studied" class="text-4xl font-black text-green-600 relative z-10">0</p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Média/Card</p>
+                            <p id="anki-stat-avg" class="text-4xl font-black text-green-600 relative z-10">0s</p>
                         </div>
                     </div>
 
                     <!-- Heatmap e Workload -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                         <!-- Heatmap -->
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
-                            <h3 class="text-lg font-black text-gray-800 mb-2 flex items-center gap-2">
-                                <i class="ph-fill ph-calendar-check text-green-500"></i> Frequência de Revisões
-                            </h3>
-                            <p class="text-xs text-gray-400 mb-8 font-medium">Seu histórico dos últimos 180 dias</p>
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100 overflow-hidden relative">
+                            <div class="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 class="text-lg font-black text-gray-800 mb-2 flex items-center gap-2">
+                                        <i class="ph-fill ph-calendar-check text-green-500"></i> Frequência de Revisões
+                                    </h3>
+                                    <p class="text-xs text-gray-400 font-medium">Histórico de atividade (Heatmap)</p>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="text-center px-3 border-r border-gray-100">
+                                        <p id="anki-heatmap-streak" class="text-xl font-black text-gray-900">0</p>
+                                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Streak</p>
+                                    </div>
+                                    <div class="text-center px-3">
+                                        <p id="anki-heatmap-total" class="text-xl font-black text-gray-900">0</p>
+                                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</p>
+                                    </div>
+                                </div>
+                            </div>
                             
-                            <div class="w-full overflow-x-auto pb-4 pt-10 custom-scrollbar">
+                            <div class="w-full overflow-x-auto pb-4 pt-4 custom-scrollbar">
                                 <div id="anki-heatmap-grid" class="flex flex-col flex-wrap gap-1 content-start" style="height: 100px;">
                                     <!-- Dinâmico JS -->
                                 </div>
@@ -867,19 +887,31 @@
                         </div>
                     </div>
 
-                    <!-- Tag Performance -->
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <!-- Syllabus / Health Check & Lapses -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                        <!-- Syllabus - Saúde das Matérias -->
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100">
+                            <h3 class="text-lg font-black text-gray-800 mb-1 flex items-center gap-2">
+                                <i class="ph-fill ph-stethoscope text-primary-500"></i> Health Check (Matérias)
+                            </h3>
+                            <p class="text-xs text-gray-400 mb-8 font-medium">Distribuição de conhecimento por assunto</p>
+                            
+                            <div id="anki-syllabus-list" class="space-y-4 max-h-[20rem] overflow-y-auto custom-scrollbar pr-2">
+                                <!-- Dinâmico via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Tag Performance (Falhas) -->
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-premium border border-gray-100 flex flex-col">
                             <div>
                                 <h3 class="text-lg font-black text-gray-800 mb-1 flex items-center gap-2">
                                     <i class="ph-fill ph-chart-pie text-red-500"></i> Matérias mais Críticas
                                 </h3>
-                                <p class="text-xs text-gray-400 font-medium">Assuntos com mais erros históricos</p>
+                                <p class="text-xs text-gray-400 mb-8 font-medium">Concentração de erros (Lapses)</p>
                             </div>
-                            <div class="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg">Baseado na contagem de "Erros/Again"</div>
-                        </div>
-                        <div class="h-72 flex justify-center">
-                            <canvas id="chart-anki-lapses"></canvas>
+                            <div class="flex-1 flex items-center justify-center min-h-[15rem]">
+                                <canvas id="chart-anki-lapses"></canvas>
+                            </div>
                         </div>
                     </div>
 
