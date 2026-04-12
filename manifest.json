@@ -1,9 +1,25 @@
 {
-  "name": "ConcursosTI",
+  "name": "ConcursosTI | Plataforma de Elite",
   "short_name": "ConcursosTI",
+  "description": "Plataforma de elite para preparação em concursos de Tecnologia da Informação.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "background_color": "#fcfdfe",
   "theme_color": "#3b5df5",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
   "gcm_sender_id": "103953800507"
 }

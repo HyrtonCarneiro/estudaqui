@@ -86,20 +86,44 @@ window.appControllers = {
             target.classList.remove('hidden');
         }
         
-        // Update nav buttons styling
+        // Update nav buttons styling (Desktop and Mobile)
         const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links', 'downloads', 'anki'];
         navs.forEach(nav => {
-            const btn = document.getElementById('nav-' + nav);
-            if (btn) {
+            const btnDesktop = document.getElementById('nav-' + nav);
+            const btnMobile = document.getElementById('mobile-nav-' + nav);
+            
+            if (btnDesktop) {
                 if (nav === pageId) {
-                    btn.classList.add('bg-primary-50', 'text-primary-600');
-                    btn.classList.remove('text-gray-600');
+                    btnDesktop.classList.add('bg-primary-50', 'text-primary-600');
+                    btnDesktop.classList.remove('text-gray-500');
                 } else {
-                    btn.classList.remove('bg-primary-50', 'text-primary-600');
-                    btn.classList.add('text-gray-600');
+                    btnDesktop.classList.remove('bg-primary-50', 'text-primary-600');
+                    btnDesktop.classList.add('text-gray-500');
+                }
+            }
+
+            if (btnMobile) {
+                const icon = btnMobile.querySelector('i');
+                const text = btnMobile.querySelector('span');
+                if (nav === pageId) {
+                    icon?.classList.add('text-primary-600', 'ph-fill');
+                    icon?.classList.remove('text-gray-400', 'ph');
+                    text?.classList.add('text-primary-600');
+                    text?.classList.remove('text-gray-400');
+                } else {
+                    icon?.classList.remove('text-primary-600', 'ph-fill');
+                    icon?.classList.add('text-gray-400', 'ph');
+                    text?.classList.remove('text-primary-600');
+                    text?.classList.add('text-gray-400');
                 }
             }
         });
+
+        // Close mobile more menu if open
+        const mobileMenu = document.getElementById('mobile-more-menu');
+        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+            this.toggleMobileMoreMenu();
+        }
 
         // Trigger page-specific initializations
         if (pageId === 'dashboard') {
@@ -172,5 +196,18 @@ window.appControllers = {
                 el.textContent = window.utils.calculateCountdown(target);
             }
         });
+    },
+
+    toggleMobileMoreMenu: function() {
+        const menu = document.getElementById('mobile-more-menu');
+        if (!menu) return;
+        const inner = menu.querySelector('div');
+        if (menu.classList.contains('hidden')) {
+            menu.classList.remove('hidden');
+            setTimeout(() => inner.classList.remove('translate-y-full'), 10);
+        } else {
+            inner.classList.add('translate-y-full');
+            setTimeout(() => menu.classList.add('hidden'), 300);
+        }
     }
 };
