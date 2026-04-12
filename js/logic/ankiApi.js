@@ -189,5 +189,40 @@ window.ankiApi = {
             console.error("Error getting syllabus data", e);
             return {};
         }
+    },
+
+    async getNextDueCard() {
+        try {
+            // is:due returns combined review and learning cards that are due
+            const cards = await this.invoke('findCards', 6, { query: 'is:due -is:suspended' });
+            if (!cards || cards.length === 0) return null;
+            
+            // Get detailed info for the first card in the queue
+            const info = await this.invoke('cardsInfo', 6, { cards: [cards[0]] });
+            return info[0];
+        } catch (e) {
+            console.error("Next due card fetch failed", e);
+            return null;
+        }
+    },
+
+    async answerCard(cardId, ease) {
+        try {
+            return await this.invoke('answerCard', 6, { card: cardId, ease: ease });
+        } catch (e) {
+            console.error("Failed to answer card", e);
+            throw e;
+        }
+    },
+
+    async updateCardFields(noteId, fields) {
+        try {
+            return await this.invoke('updateNoteFields', 6, { 
+                note: { id: noteId, fields: fields } 
+            });
+        } catch (e) {
+            console.error("Failed to update note fields", e);
+            throw e;
+        }
     }
 };

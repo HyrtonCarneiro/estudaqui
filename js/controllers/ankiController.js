@@ -6,6 +6,7 @@ window.ankiController = {
     init: async function() {
         if (!this.initialized) {
             this.bindEvents();
+            this.bindStudyEvents();
             this.initialized = true;
         }
         await this.render();
@@ -18,6 +19,39 @@ window.ankiController = {
                 this.render();
             });
         }
+    },
+
+    bindStudyEvents: function() {
+        document.getElementById('btn-anki-show-answer')?.addEventListener('click', () => this.revealAnswer());
+        
+        document.querySelectorAll('#anki-answer-buttons button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const ease = parseInt(e.currentTarget.dataset.ease);
+                this.submitAnswer(ease);
+            });
+        });
+        
+        document.getElementById('btn-anki-edit-card')?.addEventListener('click', () => this.openEditModal());
+        
+        document.getElementById('form-anki-edit-card')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveCardEdit();
+        });
+
+        window.removeEventListener('keydown', this._handleKeydown);
+        this._handleKeydown = (e) => {
+            if (!this.initialized || document.getElementById('page-anki').classList.contains('hidden')) return;
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                this.revealAnswer();
+            } else if (['1', '2', '3', '4'].includes(e.key)) {
+                const ease = parseInt(e.key);
+                this.submitAnswer(ease);
+            }
+        };
+        window.addEventListener('keydown', this._handleKeydown);
     },
 
     render: async function() {
@@ -37,11 +71,158 @@ window.ankiController = {
 
         containerApp.classList.remove('hidden');
         
+        await this.startStudySession();
         await this.updateStats();
         await this.renderHeatmap();
         await this.renderSyllabus();
         await this.renderTagPerformance();
         await this.renderWorkloadForecast();
+    },
+
+    startStudySession: async function() {
+        const sessionContainer = document.getElementById('anki-study-session');
+        const box = document.getElementById('anki-card-box');
+        const empty = document.getElementById('anki-card-empty');
+        const qEl = document.getElementById('anki-card-question');
+        const aContainer = document.getElementById('anki-card-answer-container');
+        const btnShow = document.getElementById('btn-anki-show-answer');
+        const btnAnswers = document.getElementById('anki-answer-buttons');
+        const progressEl = document.getElementById('anki-study-progress');
+
+        sessionContainer.classList.remove('hidden');
+        
+        this.currentCard = await window.ankiApi.getNextDueCard();
+        
+        if (!this.currentCard) {
+            qEl.classList.add('hidden');
+            aContainer.classList.add('hidden');
+            btnShow.classList.add('hidden');
+            btnAnswers.classList.add('hidden');
+            empty.classList.remove('hidden');
+            progressEl.textContent = "FILA ZERADA! 🎉";
+            
+            // Celebration
+            Swal.fire({
+                title: 'Parabéns!',
+                text: 'Você concluiu todas as revisões agendadas.',
+                icon: 'success',
+                confirmButtonText: 'Sensacional!',
+                confirmButtonColor: '#3b82f6',
+                backdrop: `rgba(0,0,123,0.4) url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R3Yng0Z2t3Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z3B6Z/3o7TKSjP3gZ4XF8f6u/giphy.gif") left top no-repeat`
+            });
+            return;
+        }
+
+        // Setup card UI
+        empty.classList.add('hidden');
+        qEl.classList.remove('hidden');
+        qEl.innerHTML = this.formatContent(this.currentCard.fields.Front.value, true);
+        aContainer.classList.add('hidden');
+        btnShow.classList.remove('hidden');
+        btnAnswers.classList.add('hidden');
+        
+        progressEl.textContent = `DECK: ${this.currentCard.deckName} | ID: ${this.currentCard.cardId}`;
+    },
+
+    formatContent: function(text, isFront) {
+        if (!text) return '';
+        // Cloze deletion parsing: {{c1::text::hint}}
+        if (isFront) {
+            return text.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, (match, p1, p2) => {
+                const hint = p2 ? p2.substring(2) : '...';
+                return `<span class="bg-primary-600/30 text-white px-2 py-0.5 rounded border border-primary-500/20 font-bold mx-1">[${hint}]</span>`;
+            });
+        } else {
+            return text.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, (match, p1, p2) => {
+                return `<span class="text-primary-300 font-black border-b-2 border-primary-500/40 px-1 hover:bg-primary-500/10 transition-colors cursor-help">${p1}</span>`;
+            });
+        }
+    },
+
+    revealAnswer: function() {
+        if (!this.currentCard) return;
+        const aContainer = document.getElementById('anki-card-answer-container');
+        const aEl = document.getElementById('anki-card-answer');
+        const btnShow = document.getElementById('btn-anki-show-answer');
+        const btnAnswers = document.getElementById('anki-answer-buttons');
+
+        if (!aContainer.classList.contains('hidden')) return;
+
+        // In cloze cards, we usually show the front formatted for answer + the back field
+        const frontFormatted = this.formatContent(this.currentCard.fields.Front.value, false);
+        const backContent = this.currentCard.fields.Back ? this.currentCard.fields.Back.value : '';
+        
+        aEl.innerHTML = `${frontFormatted}<div class="mt-6 pt-6 border-t border-white/5 opacity-80">${backContent}</div>`;
+        aContainer.classList.remove('hidden');
+        btnShow.classList.add('hidden');
+        btnAnswers.classList.remove('hidden');
+    },
+
+    submitAnswer: async function(ease) {
+        if (!this.currentCard || document.getElementById('anki-answer-buttons').classList.contains('hidden')) return;
+
+        try {
+            await window.ankiApi.answerCard(this.currentCard.cardId, ease);
+            
+            // Animation for next card
+            const box = document.getElementById('anki-card-box');
+            box.classList.add('opacity-0', '-translate-y-4');
+            
+            setTimeout(async () => {
+                await this.startStudySession();
+                await this.updateStats();
+                box.classList.remove('opacity-0', '-translate-y-4');
+            }, 200);
+
+        } catch (e) {
+            console.error("Error answering card", e);
+        }
+    },
+
+    openEditModal: function() {
+        if (!this.currentCard) return;
+        
+        document.getElementById('anki-edit-note-id').value = this.currentCard.note;
+        document.getElementById('anki-edit-front').value = this.currentCard.fields.Front.value;
+        document.getElementById('anki-edit-back').value = this.currentCard.fields.Back.value;
+        
+        document.getElementById('modal-anki-edit-card').classList.remove('hidden');
+    },
+
+    saveCardEdit: async function() {
+        const noteId = document.getElementById('anki-edit-note-id').value;
+        const front = document.getElementById('anki-edit-front').value;
+        const back = document.getElementById('anki-edit-back').value;
+
+        try {
+            await window.ankiApi.updateCardFields(noteId, {
+                Front: front,
+                Back: back
+            });
+            
+            document.getElementById('modal-anki-edit-card').classList.add('hidden');
+            
+            // Re-fetch current card data to update UI
+            this.currentCard.fields.Front.value = front;
+            this.currentCard.fields.Back.value = back;
+            
+            document.getElementById('anki-card-question').innerHTML = front;
+            if (!document.getElementById('anki-card-answer-container').classList.contains('hidden')) {
+                document.getElementById('anki-card-answer').innerHTML = back;
+            }
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Card Atualizado!',
+                text: 'As alterações foram salvas no Anki Desktop.',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        } catch (e) {
+            Swal.fire('Erro', 'Não foi possível salvar as alterações.', 'error');
+        }
     },
 
     renderSyllabus: async function() {
