@@ -70,15 +70,25 @@ window.downloadsController = {
         const ps1Script = `# anki-monitor.ps1
 $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $configFile = Join-Path $PSScriptRoot "config.json"
+$logFile = Join-Path $PSScriptRoot "monitor-log.txt"
 if (-not (Test-Path $configFile)) { exit }
+
+function Write-Log($msg) {
+    try {
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        "[$timestamp] $msg" | Out-File -FilePath $logFile -Append -Encoding UTF8
+    } catch {}
+}
+
 while ($true) {
     try {
+        if (-not (Test-Path $configFile)) { break }
         $config = Get-Content $configFile | ConvertFrom-Json
         $now = Get-Date
-        # Verifica se já notificou recentemente (nos últimos 55 minutos)
         $last = if ($config.lastNotifiedAt) { [DateTime]::Parse($config.lastNotifiedAt) } else { [DateTime]::MinValue }
         
         if ($now -gt $last.AddMinutes(55)) {
+            Write-Log "Verificando cards no Anki..."
             $qNew = @{ action = 'findCards'; version = 6; params = @{ query = 'is:new' } } | ConvertTo-Json
             $qLrn = @{ action = 'findCards'; version = 6; params = @{ query = 'is:learn' } } | ConvertTo-Json
             $qRev = @{ action = 'findCards'; version = 6; params = @{ query = 'is:review is:due' } } | ConvertTo-Json
@@ -89,16 +99,26 @@ while ($true) {
             
             $total = ($rNew.result.Count) + ($rLrn.result.Count) + ($rRev.result.Count)
             if ($total -gt 0) {
+                Write-Log "Cards pendentes: $total. Disparando notificação..."
                 $bodyText = "Voce tem $total cards pendentes (Novos: $($rNew.result.Count) | Aprender: $($rLrn.result.Count) | Revisar: $($rRev.result.Count))"
                 $bodyPush = @{ token = $config.fcmToken; title = 'Estudos Pendentes 📚'; body = $bodyText } | ConvertTo-Json
-                Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json"
                 
-                # Salva o horário da notificação no arquivo compartilhado (trava anti-duplicidade)
+                try {
+                    $notifyRes = Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json" -ErrorAction Stop
+                    Write-Log "Notificação enviada com sucesso."
+                } catch {
+                    Write-Log "Falha ao enviar push: $($_.Exception.Message)"
+                }
+                
+                # Atualiza o timestamp para evitar repetição no intervalo de 1h
                 $config.lastNotifiedAt = $now.ToString("o")
-                $config | ConvertTo-Json | Set-Content $configFile
+                $config | ConvertTo-Json | Set-Content $configFile -Force
+                Write-Log "Trava de tempo atualizada no config.json"
             }
         }
-    } catch {}
+    } catch {
+        Write-Log "Erro no monitor: $($_.Exception.Message)"
+    }
     Start-Sleep -Seconds 600
 }`;
 
@@ -110,7 +130,7 @@ echo Consultando Anki e enviando teste...
 powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json;$q=@{action='findCards';version=6;params=@{query=''}};$r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json);$body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json;Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json';echo Sucesso!"
 pause`;
 
-        const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedDate: "" });
+        const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedAt: "" });
 
         const masterScript = `
 $installDir = "$env:USERPROFILE\\AnkiMonitor"
