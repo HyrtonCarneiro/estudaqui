@@ -246,5 +246,15 @@ window.ankiApi = {
             console.error("Failed to update note fields", e);
             throw e;
         }
+    },
+
+    async getNextIntervals(cardId) {
+        try {
+            // Returns an array of strings like ["1m", "10m", "1d", "4d"]
+            return await this.invoke('getNextIntervals', 6, { card: cardId });
+        } catch (e) {
+            console.warn("Failed to get next intervals:", e);
+            return null;
+        }
     }
 };

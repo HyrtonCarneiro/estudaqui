@@ -181,7 +181,7 @@ window.ankiController = {
         return fields[allKeys[1]] ? fields[allKeys[1]].value : (fields[allKeys[0]] ? fields[allKeys[0]].value : '');
     },
 
-    revealAnswer: function() {
+    revealAnswer: async function() {
         if (!this.currentCard) return;
         const aContainer = document.getElementById('anki-card-answer-container');
         const aEl = document.getElementById('anki-card-answer');
@@ -189,6 +189,15 @@ window.ankiController = {
         const btnAnswers = document.getElementById('anki-answer-buttons');
 
         if (!aContainer.classList.contains('hidden')) return;
+
+        // Fetch and show prediction intervals
+        const intervals = await window.ankiApi.getNextIntervals(this.currentCard.cardId);
+        if (intervals && intervals.length === 4) {
+            const labels = document.querySelectorAll('#anki-answer-buttons button .interval-label');
+            labels.forEach((el, idx) => {
+                el.textContent = intervals[idx];
+            });
+        }
 
         // In cloze cards, we usually show the front formatted for answer + the back field
         const frontRaw = this.getCardField(this.currentCard, 'q');
