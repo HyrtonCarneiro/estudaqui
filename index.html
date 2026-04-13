@@ -875,7 +875,18 @@
                         <i class="ph-fill ph-warning-circle text-4xl"></i>
                     </div>
                     <h3 class="text-xl font-black text-gray-800 mb-2">AnkiConnect Inacessível</h3>
-                    <p class="text-gray-500 text-sm max-w-md">Não foi possível conectar ao Anki. O aplicativo do Anki precisa estar <b>ABERTO</b> e o add-on AnkiConnect deve estar devidamente configurado na porta 8765 e o webCorsOriginList setado para `*`.</p>
+                    <p class="text-gray-500 text-sm max-w-md mb-8">Não foi possível conectar ao Anki. O aplicativo do Anki precisa estar <b>ABERTO</b> e o add-on AnkiConnect deve estar devidamente configurado na porta 8765 e o webCorsOriginList setado para `*`.</p>
+                    
+                    <div class="bg-white p-6 rounded-3xl border border-red-100 shadow-sm w-full max-w-sm">
+                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Configurar URL do Anki</label>
+                        <div class="flex flex-col gap-3">
+                            <input type="text" id="input-anki-url" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all text-xs" placeholder="Ex: localhost:8765">
+                            <button id="btn-save-anki-url" class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-black rounded-2xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest">
+                                Salvar e Tentar Novamente
+                            </button>
+                        </div>
+                        <p class="text-[9px] text-gray-400 mt-4 font-medium italic">Padrão: localhost:8765</p>
+                    </div>
                 </div>
 
                 <!-- App State -->

@@ -19,6 +19,25 @@ window.ankiController = {
                 this.render();
             });
         }
+
+        const btnSaveUrl = document.getElementById('btn-save-anki-url');
+        const inputUrl = document.getElementById('input-anki-url');
+        
+        if (btnSaveUrl && inputUrl) {
+            // Pre-fill with current URL
+            inputUrl.value = window.ankiApi.url.replace('http://', '');
+            
+            btnSaveUrl.addEventListener('click', () => {
+                const newUrl = inputUrl.value.trim();
+                if (newUrl) {
+                    window.ankiApi.setUrl(newUrl);
+                    window.utils.showToast("URL do Anki atualizada!", "success");
+                    this.render();
+                } else {
+                    window.utils.showToast("Informe uma URL válida.", "error");
+                }
+            });
+        }
     },
 
     bindStudyEvents: function() {

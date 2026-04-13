@@ -1,5 +1,13 @@
 window.ankiApi = {
-    url: 'http://192.168.0.9:8765',
+    get url() {
+        return localStorage.getItem('anki_connect_url') || 'http://localhost:8765';
+    },
+
+    setUrl(newUrl) {
+        if (!newUrl) return;
+        if (!newUrl.startsWith('http')) newUrl = 'http://' + newUrl;
+        localStorage.setItem('anki_connect_url', newUrl);
+    },
 
     async invoke(action, version, params = {}) {
         return new Promise((resolve, reject) => {
