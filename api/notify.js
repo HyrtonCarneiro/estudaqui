@@ -81,6 +81,11 @@ module.exports = async (req, res) => {
         return res.status(200).json({ success: true, messageId: response });
     } catch (error) {
         console.error('Erro ao enviar mensagem FCM:', error);
-        return res.status(500).json({ error: "Erro interno: " + error.message });
+        // Retornamos 200 com success: false para que o cliente (PowerShell) consiga ler o JSON do erro sem travar
+        return res.status(200).json({ 
+            success: false, 
+            error: error.message,
+            code: error.code || 'unknown'
+        });
     }
 };

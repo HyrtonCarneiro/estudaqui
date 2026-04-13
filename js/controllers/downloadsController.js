@@ -167,20 +167,23 @@ while ($true) {
                 
                 try {
                     $notifyRes = Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json" -ErrorAction Stop
-                    Write-Log "Notificação enviada com sucesso."
-                } catch {
-                    # Se o token expirou (Device unregistered), tenta atualizar
-                    if ($_.Exception.Message -like "*Device unregistered*") {
-                        if (Update-Token) {
-                            # Tenta denovo com o novo token
-                            $config = Get-Content $configFile | ConvertFrom-Json
-                            $bodyPush = @{ token = $config.fcmToken; title = 'Estudos Pendentes 📚'; body = $bodyText } | ConvertTo-Json
-                            Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json"
-                            Write-Log "Notificação enviada após atualização de token."
-                        }
+                    if ($notifyRes.success) {
+                        Write-Log "Notificação enviada com sucesso."
                     } else {
-                        Write-Log "Falha ao enviar push: $($_.Exception.Message)"
+                        Write-Log "Servidor retornou erro: $($notifyRes.error)"
+                        # Se o token expirou (Device unregistered), tenta atualizar
+                        if ($notifyRes.error -like "*unregistered*" -or $notifyRes.code -like "*unregistered*") {
+                            if (Update-Token) {
+                                # Tenta denovo com o novo token
+                                $config = Get-Content $configFile | ConvertFrom-Json
+                                $bodyPush = @{ token = $config.fcmToken; title = 'Estudos Pendentes 📚'; body = $bodyText } | ConvertTo-Json
+                                Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json"
+                                Write-Log "Notificação enviada após atualização de token."
+                            }
+                        }
                     }
+                } catch {
+                    Write-Log "Falha de conexão com a API: $($_.Exception.Message)"
                 }
                 
                 # Atualiza o timestamp para evitar repetição no intervalo de 1h
@@ -202,7 +205,7 @@ WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "
         const testBat = `@echo off
 chcp 65001 >nul
 echo Consultando Anki e enviando teste...
-powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json; $u= { try { $url = 'https://concursosti.vercel.app/api/get-token?user=' + $c.user + '&key=' + $c.key; $res = Invoke-RestMethod $url -Method Get; if ($res.token) { $c.fcmToken = $res.token; $c | ConvertTo-Json | Set-Content 'config.json' -Force; echo 'Token Atualizado!'; return $true } } catch { return $false } }; $q=@{action='findCards';version=6;params=@{query=''}}; $r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json); $notify = { $body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json; try { Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json' -ErrorAction Stop } catch { Write-Error $_.Exception.Message; if ($_.Exception.Response) { $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream()); $reader.ReadToEnd() } } }; try { &$notify; echo 'Sucesso!' } catch { echo '--- ERRO NO PUSH ---'; $_; if ($_.Exception.Message -like '*Device unregistered*') { if (&$u) { $c=Get-Content 'config.json'|ConvertFrom-Json; &$notify; echo 'Sucesso apos atualizacao!' } } }"
+powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json; $u= { try { $url = 'https://concursosti.vercel.app/api/get-token?user=' + $c.user + '&key=' + $c.key; $res = Invoke-RestMethod $url -Method Get; if ($res.token) { $c.fcmToken = $res.token; $c | ConvertTo-Json | Set-Content 'config.json' -Force; echo 'Token Atualizado!'; return $true } } catch { echo ('Erro ao atualizar: ' + $_.Exception.Message); return $false } }; $q=@{action='findCards';version=6;params=@{query=''}}; $r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json); $notify = { $body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json; $res = Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json'; if ($res.success) { echo 'Sucesso!' } else { echo ('Servidor erro: ' + $res.error); if ($res.error -like '*unregistered*' -or $res.code -like '*unregistered*') { if (&$u) { $c=Get-Content 'config.json'|ConvertFrom-Json; $res2 = Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body (@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json) -ContentType 'application/json'; if ($res2.success) { echo 'Sucesso apos atualizacao!' } } } } }; try { &$notify } catch { echo ('Falha de conexao: ' + $_.Exception.Message) }"
 pause`;
 
         const configJson = JSON.stringify({ fcmToken: fcmToken, user: username, key: monitorKey, lastNotifiedAt: "" });
