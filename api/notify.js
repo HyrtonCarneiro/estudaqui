@@ -69,10 +69,6 @@ module.exports = async (req, res) => {
         }
 
         const message = {
-            notification: {
-                title: title || 'Estudaqui TI',
-                body: body || 'Nova mensagem de sistema'
-            },
             data: {
                 title: title || 'Estudaqui TI',
                 body: body || 'Nova mensagem de sistema',
