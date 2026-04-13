@@ -421,6 +421,11 @@ window.store = {
                 if (displayName) this.state.displayName = displayName;
                 
                 console.log("Sync: Cloud data received.");
+
+                // Auto-registrar push notifications via PWA (silencioso)
+                if (window.notificationService && window.notificationService.autoRegister) {
+                    setTimeout(() => window.notificationService.autoRegister(), 2000);
+                }
             } else {
                 console.warn(`Sync: Document [${normalizedUser}] not found. Checking for legacy casing...`);
                 

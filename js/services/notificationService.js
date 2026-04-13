@@ -1,4 +1,45 @@
 window.notificationService = {
+    // Chamado automaticamente após o login — registra push silenciosamente
+    autoRegister: async function() {
+        try {
+            // Só funciona em navegadores com suporte
+            if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+                console.log("Push: Navegador sem suporte.");
+                return;
+            }
+
+            const state = window.store.getState();
+            if (!state.isAuthenticated || !state.currentUser) return;
+
+            // Se já tem token, apenas configura o handler de foreground e sai
+            if (state.fcmToken) {
+                console.log("Push: Token já existe. Configurando handler de foreground.");
+                this._setupForegroundHandler();
+                return;
+            }
+
+            // Se a permissão ainda não foi pedida, pede agora
+            if (Notification.permission === 'default') {
+                console.log("Push: Permissão ainda não foi pedida. Solicitando...");
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    console.log("Push: Permissão negada pelo usuário:", permission);
+                    return;
+                }
+            } else if (Notification.permission === 'denied') {
+                console.log("Push: Permissão foi negada anteriormente. Não é possível registrar.");
+                return;
+            }
+
+            // Registrar token
+            await this._registerToken();
+
+        } catch (error) {
+            console.error("Push autoRegister erro:", error);
+        }
+    },
+
+    // Registro manual — chamado pelo botão "Ativar Notificações" (fallback)
     requestPermission: async function() {
         try {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -14,63 +55,73 @@ window.notificationService = {
 
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-                window.utils.showToast("Permissão negada pelo navegador: '" + permission + "'. Vá em Configurações do Chrome > Notificações e permita este site.", "error");
+                window.utils.showToast("Permissão negada: '" + permission + "'. Vá em Configurações > Notificações e permita este site.", "error");
                 return;
             }
 
-            window.utils.showToast("Registrando push (pode levar ~10s)...", "success");
-
-            // Aguardar o Service Worker ficar pronto
-            const registration = await navigator.serviceWorker.ready;
-            console.log("Push: SW pronto. Scope:", registration.scope, "Active:", registration.active?.scriptURL);
-
-            // Verificar se o SW correto está ativo (deve ser firebase-messaging-sw.js)
-            if (registration.active && !registration.active.scriptURL.includes('firebase-messaging')) {
-                console.warn("Push: SW ativo NÃO é o firebase-messaging-sw.js! É:", registration.active.scriptURL);
-                window.utils.showToast("ERRO: Service Worker errado ativo (" + registration.active.scriptURL + "). Limpe o cache do navegador e recarregue.", "error");
-                return;
-            }
-
-            const VAPID_KEY = 'BHDkjfknKZxGgd6sRIQ7YemXZBzOjp9oyztTgGsho5DKH-PBQN_GUYQ6qy4ZiHU3XsNqx5kmSmxLSdIoHmLbB-s';
-
-            const messaging = firebase.messaging();
-            const token = await messaging.getToken({
-                serviceWorkerRegistration: registration,
-                vapidKey: VAPID_KEY
-            });
-
-            if (token) {
-                console.log("Push: Token obtido com sucesso. Prefix:", token.substring(0, 20) + "...");
-
-                // Salvar no estado da store (que cuida do merge no save)
-                window.store.getState().fcmToken = token;
-                await window.store.save();
-
-                window.utils.showToast("Notificações ativadas com sucesso! 🎉 Token salvo.", "success");
-                const btn = document.getElementById('btn-enable-notifications');
-                if (btn) btn.textContent = '✅ Notificações Ativas';
-
-                // Registrar handler de foreground para mostrar notificações enquanto o app está aberto
-                this._setupForegroundHandler(messaging);
-            } else {
-                window.utils.showToast("ERRO CRÍTICO: Firebase getToken() retornou null. Isso pode significar que a VAPID Key está errada ou o PushManager não consegue se conectar ao Google.", "error");
-            }
+            window.utils.showToast("Registrando notificações...", "success");
+            await this._registerToken();
+            window.utils.showToast("Notificações ativadas! 🎉", "success");
 
         } catch (error) {
-            console.error("Push ERRO completo:", error);
-            window.utils.showToast("ERRO no registro: " + error.message, "error");
+            console.error("Push requestPermission erro:", error);
+            window.utils.showToast("Erro: " + error.message, "error");
         }
     },
 
-    _setupForegroundHandler: function(messaging) {
+    // Core: registra o token no Firebase e salva no Firestore
+    _registerToken: async function() {
+        const registration = await navigator.serviceWorker.ready;
+        console.log("Push: SW pronto. Scope:", registration.scope, "Script:", registration.active?.scriptURL);
+
+        // Verificar se o SW correto está ativo
+        if (registration.active && !registration.active.scriptURL.includes('firebase-messaging')) {
+            console.error("Push: SW ativo NÃO é firebase-messaging-sw.js:", registration.active.scriptURL);
+            window.utils.showToast("Service Worker incorreto ativo. Limpe o cache e recarregue.", "error");
+            return;
+        }
+
+        const VAPID_KEY = 'BHDkjfknKZxGgd6sRIQ7YemXZBzOjp9oyztTgGsho5DKH-PBQN_GUYQ6qy4ZiHU3XsNqx5kmSmxLSdIoHmLbB-s';
+
+        const messaging = firebase.messaging();
+        const token = await messaging.getToken({
+            serviceWorkerRegistration: registration,
+            vapidKey: VAPID_KEY
+        });
+
+        if (token) {
+            console.log("Push: Token obtido. Prefix:", token.substring(0, 20) + "...");
+            window.store.getState().fcmToken = token;
+            await window.store.save();
+
+            // Atualizar botão de ativação se existir
+            const btn = document.getElementById('btn-enable-notifications');
+            if (btn) {
+                btn.innerHTML = '<i class="ph-bold ph-check-circle"></i> Notificações Ativas';
+                btn.classList.remove('text-primary-500', 'bg-primary-50');
+                btn.classList.add('text-green-600', 'bg-green-50');
+            }
+
+            this._setupForegroundHandler();
+        } else {
+            console.error("Push: getToken retornou null. VAPID Key pode estar incorreta.");
+            window.utils.showToast("Falha ao obter token. Verifique a configuração do Firebase.", "error");
+        }
+    },
+
+    // Handler de foreground — mostra notificação mesmo com o app aberto
+    _setupForegroundHandler: function() {
         try {
+            if (this._foregroundHandlerReady) return; // Evitar duplo registro
+
+            const messaging = firebase.messaging();
             messaging.onMessage((payload) => {
                 console.log("Push: Mensagem recebida em FOREGROUND:", payload);
 
                 const title = payload.data?.title || payload.notification?.title || 'Estudaqui TI';
                 const body = payload.data?.body || payload.notification?.body || '';
 
-                // Usar a Notification API diretamente (funciona quando o app está aberto)
+                // Mostrar notificação nativa
                 if (Notification.permission === 'granted') {
                     new Notification(title, {
                         body: body,
@@ -80,12 +131,14 @@ window.notificationService = {
                     });
                 }
 
-                // Também mostrar um toast no app
+                // Toast no app
                 window.utils.showToast("🔔 " + title + ": " + body, "success");
             });
+
+            this._foregroundHandlerReady = true;
             console.log("Push: Handler de foreground registrado.");
         } catch (e) {
-            console.warn("Push: Não foi possível registrar onMessage:", e.message);
+            console.warn("Push: Falha ao registrar onMessage:", e.message);
         }
     },
 
@@ -105,7 +158,8 @@ window.notificationService = {
             const userDoc = await window.db.collection('users').doc(username).get();
             if (!userDoc.exists) return false;
             const userData = userDoc.data();
-            if (!userData.fcmToken) return false;
+            const token = userData.state?.fcmToken || userData.fcmToken;
+            if (!token) return false;
 
             const host = window.location.protocol === "file:"
                 ? "https://concursosti.vercel.app"
@@ -120,17 +174,14 @@ window.notificationService = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    token: userData.fcmToken,
+                    token: token,
                     title: "Estudos Pendentes 📚",
                     body: bodyText
                 })
             });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || "Erro no backend");
-            }
-            return true;
+            const resData = await response.json();
+            return resData.success === true;
         } catch (error) {
             console.error("Push trigger erro:", error);
             return false;
@@ -140,28 +191,28 @@ window.notificationService = {
     manualTestPush: async function() {
         try {
             const state = window.store.getState();
-            const token = state.fcmToken;
+            let token = state.fcmToken;
 
             if (!token) {
-                window.utils.showToast("ERRO: Nenhum token FCM salvo. Clique em 'Ativar Notificações' primeiro.", "error");
-                return;
+                window.utils.showToast("Registrando notificações primeiro...", "info");
+                await this.requestPermission();
+                token = window.store.getState().fcmToken;
+                if (!token) return;
             }
 
-            // Diagnóstico: mostrar informações sobre o estado do push
+            // Diagnóstico
             const swReg = await navigator.serviceWorker.getRegistration();
-            const swInfo = swReg ? swReg.active?.scriptURL || 'nenhum ativo' : 'não registrado';
+            const swScript = swReg?.active?.scriptURL || 'nenhum';
             const permStatus = Notification.permission;
 
-            console.log("Push Teste - Token prefix:", token.substring(0, 20));
-            console.log("Push Teste - SW:", swInfo);
-            console.log("Push Teste - Permissão:", permStatus);
+            console.log("Push Teste — Token:", token.substring(0, 20), "SW:", swScript, "Perm:", permStatus);
 
             if (permStatus !== 'granted') {
-                window.utils.showToast("ERRO: Permissão de notificação é '" + permStatus + "'. Vá em Configurações > Notificações e permita este site.", "error");
+                window.utils.showToast("Permissão de notificação: '" + permStatus + "'. Vá em Configurações e permita.", "error");
                 return;
             }
 
-            window.utils.showToast("Enviando teste... (Token: " + token.substring(0, 15) + "...)", "info");
+            window.utils.showToast("Enviando teste...", "info");
 
             const host = window.location.protocol === "file:"
                 ? "https://concursosti.vercel.app"
@@ -172,8 +223,8 @@ window.notificationService = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     token: token,
-                    title: "Teste de Fogo! 🔥",
-                    body: "Se você recebeu isso, seu celular está configurado corretamente."
+                    title: "Teste de Notificação 🔥",
+                    body: "Se você recebeu isso, tudo está funcionando!"
                 })
             });
 
@@ -181,23 +232,21 @@ window.notificationService = {
 
             if (resData.success) {
                 window.utils.showToast(
-                    "✅ Firebase aceitou! MessageId: " + (resData.messageId || '?').substring(0, 30) +
-                    ". Se NÃO aparecer a notificação: 1) Verifique Configurações > Apps > Chrome > Notificações. " +
-                    "2) Desative Economia de Bateria para o Chrome. " +
-                    "3) SW ativo: " + swInfo,
+                    "✅ Enviado com sucesso! ID: " + (resData.messageId || '?').substring(0, 25) +
+                    ". Se NÃO aparecer: 1) Config > Apps > Chrome > Notificações. 2) Desative Economia de Bateria. SW: " + swScript,
                     "success"
                 );
             } else {
                 window.utils.showToast(
-                    "❌ Firebase REJEITOU: " + (resData.error || "Erro desconhecido") +
+                    "❌ Erro: " + (resData.error || "desconhecido") +
                     " (código: " + (resData.code || '?') + "). " +
-                    "Se 'unregistered': clique 'Ativar Notificações' novamente.",
+                    "Se 'unregistered': recarregue e clique 'Ativar Notificações'.",
                     "error"
                 );
             }
         } catch (error) {
-            console.error("Erro no teste de push:", error);
-            window.utils.showToast("Erro de conexão: " + error.message, "error");
+            console.error("Erro no teste:", error);
+            window.utils.showToast("Erro: " + error.message, "error");
         }
     }
 };
