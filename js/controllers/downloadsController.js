@@ -59,32 +59,44 @@ window.downloadsController = {
             return;
         }
 
-        let fcmToken = state.fcmToken;
-        if (!fcmToken) {
-            try {
-                const userDoc = await window.db.collection('users').doc(state.currentUser).get();
-                if (userDoc.exists) {
-                    fcmToken = userDoc.data().fcmToken || (userDoc.data().state ? userDoc.data().state.fcmToken : null);
-                }
-            } catch(e) { console.error(e); }
-        }
+        let userData = {};
+        try {
+            const userDoc = await window.db.collection('users').doc(state.currentUser).get();
+            if (userDoc.exists) {
+                userData = userDoc.data();
+            }
+        } catch(e) { console.error(e); }
+
+        let fcmToken = state.fcmToken || userData.fcmToken || (userData.state ? userData.state.fcmToken : null);
+        let monitorKey = userData.ankiMonitorKey;
 
         if (!fcmToken) {
             window.utils.showToast("Ative as notificações no celular primeiro (Dashboard).", "error");
             return;
         }
 
+        // Gerar chave se não existir
+        if (!monitorKey) {
+            monitorKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            try {
+                await window.db.collection('users').doc(state.currentUser).update({
+                    ankiMonitorKey: monitorKey
+                });
+                window.utils.showToast("Chave de monitor gerada!", "success");
+            } catch (e) {
+                console.error("Erro ao salvar chave:", e);
+            }
+        }
+
         try {
-            const batContent = this._gerarInstaladorBat(fcmToken);
+            const batContent = this._gerarInstaladorBat(fcmToken, state.currentUser, monitorKey);
             this._downloadFile('Instalar-Monitor-Anki.bat', batContent, 'application/x-bat');
-            window.utils.showToast("Instalador baixado!", "success");
+            window.utils.showToast("Instalador preparado!", "success");
         } catch (err) {
             console.error(err);
-            window.utils.showToast("Erro ao gerar instalador. Tente novamente.", "error");
+            window.utils.showToast("Erro ao gerar instalador: " + err.message, "error");
         }
-    },
-
-    _gerarInstaladorBat: function(fcmToken) {
+     _gerarInstaladorBat: function(fcmToken, username, monitorKey) {
         // Helpers de codificação seguros para o Navegador
         const toB64 = (str) => btoa(unescape(encodeURIComponent(str)));
         
@@ -109,6 +121,24 @@ function Write-Log($msg) {
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         "[$timestamp] $msg" | Out-File -FilePath $logFile -Append -Encoding UTF8
     } catch {}
+}
+
+function Update-Token {
+    Write-Log "Tentando atualizar token na nuvem..."
+    try {
+        $config = Get-Content $configFile | ConvertFrom-Json
+        $url = "https://concursosti.vercel.app/api/get-token?user=$($config.user)&key=$($config.key)"
+        $res = Invoke-RestMethod -Uri $url -Method Get -ErrorAction Stop
+        if ($res.token) {
+            $config.fcmToken = $res.token
+            $config | ConvertTo-Json | Set-Content $configFile -Force
+            Write-Log "Token atualizado com sucesso!"
+            return $true
+        }
+    } catch {
+        Write-Log "Falha ao atualizar token: $($_.Exception.Message)"
+    }
+    return $false
 }
 
 while ($true) {
@@ -138,7 +168,18 @@ while ($true) {
                     $notifyRes = Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json" -ErrorAction Stop
                     Write-Log "Notificação enviada com sucesso."
                 } catch {
-                    Write-Log "Falha ao enviar push: $($_.Exception.Message)"
+                    # Se o token expirou (Device unregistered), tenta atualizar
+                    if ($_.Exception.Message -like "*Device unregistered*") {
+                        if (Update-Token) {
+                            # Tenta denovo com o novo token
+                            $config = Get-Content $configFile | ConvertFrom-Json
+                            $bodyPush = @{ token = $config.fcmToken; title = 'Estudos Pendentes 📚'; body = $bodyText } | ConvertTo-Json
+                            Invoke-RestMethod -Uri "https://concursosti.vercel.app/api/notify" -Method Post -Body $bodyPush -ContentType "application/json"
+                            Write-Log "Notificação enviada após atualização de token."
+                        }
+                    } else {
+                        Write-Log "Falha ao enviar push: $($_.Exception.Message)"
+                    }
                 }
                 
                 # Atualiza o timestamp para evitar repetição no intervalo de 1h
@@ -151,17 +192,19 @@ while ($true) {
         Write-Log "Erro no monitor: $($_.Exception.Message)"
     }
     Start-Sleep -Seconds 600
-}`;
+}
+`;
 
         const vbsScript = `Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & Replace(WScript.ScriptFullName, WScript.ScriptName, "") & "anki-monitor.ps1""", 0, False`;
 
         const testBat = `@echo off
+chcp 65001 >nul
 echo Consultando Anki e enviando teste...
-powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json;$q=@{action='findCards';version=6;params=@{query=''}};$r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json);$body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json;Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json';echo Sucesso!"
+powershell -Command "$c=Get-Content 'config.json'|ConvertFrom-Json; $u= { try { $url = 'https://concursosti.vercel.app/api/get-token?user=' + $c.user + '&key=' + $c.key; $res = Invoke-RestMethod $url -Method Get; if ($res.token) { $c.fcmToken = $res.token; $c | ConvertTo-Json | Set-Content 'config.json' -Force; echo 'Token Atualizado!'; return $true } } catch { return $false } }; $q=@{action='findCards';version=6;params=@{query=''}}; $r=Invoke-RestMethod 'http://localhost:8765' -Method Post -Body ($q|ConvertTo-Json); $notify = { $body=@{token=$c.fcmToken;title='Teste OK! 🔔';body='Monitor funcionando corretamente!'}|ConvertTo-Json; Invoke-RestMethod 'https://concursosti.vercel.app/api/notify' -Method Post -Body $body -ContentType 'application/json' }; try { &$notify; echo 'Sucesso!' } catch { if ($_.Exception.Message -like '*Device unregistered*') { if (&$u) { $c=Get-Content 'config.json'|ConvertFrom-Json; &$notify; echo 'Sucesso apos atualizacao!' } else { echo 'Erro na atualizacao de token.' } } else { echo ('Erro: ' + $_.Exception.Message) } }"
 pause`;
 
-        const configJson = JSON.stringify({ fcmToken: fcmToken, lastNotifiedAt: "" });
+        const configJson = JSON.stringify({ fcmToken: fcmToken, user: username, key: monitorKey, lastNotifiedAt: "" });
 
         const masterScript = `
 $installDir = "$env:USERPROFILE\\AnkiMonitor"
@@ -201,7 +244,7 @@ try {
     Write-Host "3. Instalando arquivos..." -ForegroundColor Cyan
     [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(ps1Script)}")) | Set-Content "$installDir\\anki-monitor.ps1" -Encoding UTF8
     [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(vbsScript)}")) | Set-Content $vbsPath -Encoding Ascii
-    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(testBat)}")) | Set-Content "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding UTF8
+    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${toB64(testBat)}")) | Set-Content "$installDir\\TESTAR-NOTIFICACAO.bat" -Encoding Ascii
     '${configJson}' | Set-Content "$installDir\\config.json" -Encoding UTF8
 
     Write-Host "4. Configurando inicialização..." -ForegroundColor Cyan
