@@ -1,21 +1,17 @@
 const admin = require('firebase-admin');
 
-// Inicializa o Firebase Admin garantindo que não dê erro em múltiplas execuções no ambiente Serverless
-if (!admin.apps.length) {
-    try {
+function initFirebase() {
+    if (!admin.apps.length) {
+        if (!process.env.FIREBASE_PRIVATE_KEY) {
+            throw new Error("FIREBASE_PRIVATE_KEY is missing in environment variables");
+        }
         admin.initializeApp({
-            // Para produção real, Vercel injeta a credencial automaticamente 
-            // se setarmos as variaveis de ambiente FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
-            // Como este é um snippet inicial, usamos a default se disponivel
             credential: admin.credential.cert({
                 projectId: process.env.FIREBASE_PROJECT_ID,
                 clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                // Replace escapes pra nao quebrar chaves multilinhas da Vercel
                 privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
             })
         });
-    } catch (e) {
-        console.error("Erro ao inicializar admin SDK:", e);
     }
 }
 
@@ -40,6 +36,7 @@ module.exports = async (req, res) => {
     }
 
     try {
+        initFirebase();
         const { token, title, body } = req.body;
 
         if (!token) {

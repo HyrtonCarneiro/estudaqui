@@ -1,7 +1,10 @@
 const admin = require('firebase-admin');
 
-if (!admin.apps.length) {
-    try {
+function initFirebase() {
+    if (!admin.apps.length) {
+        if (!process.env.FIREBASE_PRIVATE_KEY) {
+            throw new Error("FIREBASE_PRIVATE_KEY is missing in environment variables");
+        }
         admin.initializeApp({
             credential: admin.credential.cert({
                 projectId: process.env.FIREBASE_PROJECT_ID,
@@ -9,12 +12,9 @@ if (!admin.apps.length) {
                 privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
             })
         });
-    } catch (e) {
-        console.error("Erro ao inicializar admin SDK:", e);
     }
+    return admin.firestore();
 }
-
-const db = admin.firestore();
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -32,6 +32,7 @@ module.exports = async (req, res) => {
     }
 
     try {
+        const db = initFirebase();
         const { user, key } = req.query;
 
         if (!user || !key) {
