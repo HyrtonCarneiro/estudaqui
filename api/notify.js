@@ -72,6 +72,11 @@ module.exports = async (req, res) => {
                 title: title || 'Estudaqui TI',
                 body: body || 'Nova mensagem de sistema'
             },
+            data: {
+                title: title || 'Estudaqui TI',
+                body: body || 'Nova mensagem de sistema',
+                click_action: host
+            },
             token: token
         };
 

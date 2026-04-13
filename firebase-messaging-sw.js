@@ -16,6 +16,23 @@ firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
+// Handler manual para garantir que a notificação apareça em segundo plano no Mobile
+messaging.onBackgroundMessage((payload) => {
+    console.log('Push: Recebido em segundo plano:', payload);
+
+    const notificationTitle = payload.data?.title || payload.notification?.title || 'Estudaqui TI';
+    const notificationOptions = {
+        body: payload.data?.body || payload.notification?.body || 'Nova atualização disponível',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        data: {
+            url: payload.data?.click_action || '/'
+        }
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
 // Forçar atualização do Service Worker imediatamente após nova versão
 self.addEventListener('install', () => {
     self.skipWaiting();
@@ -25,5 +42,22 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim());
 });
 
-// NOTA: onBackgroundMessage removido para evitar duplicidade.
-// O FCM já exibe notificações automaticamente quando o payload contém a propriedade 'notification'.
+// Ao clicar na notificação
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const urlToOpen = event.notification.data?.url || '/';
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            for (let i = 0; i < windowClients.length; i++) {
+                const client = windowClients[i];
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
+    );
+});
