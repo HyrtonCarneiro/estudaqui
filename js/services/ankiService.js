@@ -9,9 +9,9 @@ window.ankiService = {
             // 1. Tentar Conexão Local (Real-time)
             // Usamos invoke diretamente via window.ankiApi que já resolve o melhor IP
             const [newRes, learnRes, reviewRes] = await Promise.all([
-                window.ankiApi.invoke("findCards", 6, { query: "is:new" }),
-                window.ankiApi.invoke("findCards", 6, { query: "is:learn" }),
-                window.ankiApi.invoke("findCards", 6, { query: "is:review is:due" })
+                window.ankiApi.invoke("findCards", 6, { query: "is:new -is:suspended -is:buried" }),
+                window.ankiApi.invoke("findCards", 6, { query: "is:learn -is:suspended -is:buried" }),
+                window.ankiApi.invoke("findCards", 6, { query: "is:review is:due -is:suspended -is:buried" })
             ]);
 
             const newCount = (newRes && Array.isArray(newRes)) ? newRes.length : 0;
