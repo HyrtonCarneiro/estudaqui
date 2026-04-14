@@ -270,21 +270,24 @@ Read-Host
 
         const encodedCommand = toUTF16LEB64(masterScript);
 
-        return `@echo off
-chcp 65001 >nul
-title Instalador Blindado
-echo Iniciando instalacao segura...
-powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand "${encodedCommand}"
-echo.
-echo ========================================================
-echo   PROCESSO FINALIZADO. VOCÊ PODE FECHAR ESTA JANELA.
-echo ========================================================
-pause
-`;
+        const batLines = [
+            "@echo off",
+            "chcp 65001 >nul",
+            "title Instalador Blindado",
+            "echo Iniciando instalacao segura...",
+            `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand "${encodedCommand}"`,
+            "echo:",
+            "echo ========================================================",
+            "echo   PROCESSO FINALIZADO. VOCE PODE FECHAR ESTA JANELA.",
+            "echo ========================================================",
+            "pause"
+        ];
+
+        return batLines.join("\r\n");
     },
 
     _downloadFile: function(filename, content, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
+        const blob = new Blob(["\ufeff", content], { type: mimeType });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
