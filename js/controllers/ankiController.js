@@ -252,14 +252,14 @@ window.ankiController = {
 
         // More vibrant emerald/green palette (8 levels)
         const colors = [
-            '#ecfdf5', // 50
-            '#d1fae5', // 100
-            '#a7f3d0', // 200
-            '#6ee7b7', // 300
-            '#34d399', // 400
-            '#10b981', // 500
-            '#059669', // 600
-            '#047857'  // 700
+            '#a7f3d0', // stronger base level
+            '#6ee7b7', 
+            '#34d399', 
+            '#10b981', 
+            '#059669', 
+            '#047857', 
+            '#065f46', 
+            '#064e3b'
         ];
 
         const daysToRender = 180;
@@ -274,21 +274,22 @@ window.ankiController = {
             const box = document.createElement('div');
             box.className = 'w-3 h-3 rounded-[3px] transition-all hover:scale-150 hover:z-10 cursor-pointer relative group';
             
+            let colorIndex = 0;
             if (count === 0) {
-                box.style.backgroundColor = '#f3f4f6'; // Gray-100
+                box.style.backgroundColor = '#e5e7eb'; // Gray-200 explicitly to stand out better than Gray-100 against white background
             } else {
-                // Determine level 0-7
-                const ratio = count / maxReviews;
-                const level = Math.min(Math.floor(ratio * colors.length), colors.length - 1);
-                box.style.backgroundColor = colors[level];
-                box.style.boxShadow = `0 0 10px ${colors[level]}33`;
+                // Determine level 0-7, using Math.sqrt to avoid outliers pushing normal days into the weakest color
+                const ratio = Math.sqrt(count / maxReviews);
+                colorIndex = Math.min(Math.floor(ratio * colors.length), colors.length - 1);
+                box.style.backgroundColor = colors[colorIndex];
+                box.style.boxShadow = `0 0 10px ${colors[colorIndex]}33`;
             }
 
             const tooltip = document.createElement('div');
             tooltip.className = 'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-[10px] whitespace-nowrap rounded-lg font-bold opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-20 shadow-xl border border-white/10 translate-y-2 group-hover:translate-y-0';
             tooltip.innerHTML = `
                 <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full" style="background: ${count > 0 ? colors[Math.min(Math.floor((count/maxReviews) * 8), 7)] : '#d1d5db'}"></span>
+                    <span class="w-1.5 h-1.5 rounded-full" style="background: ${count > 0 ? colors[colorIndex] : '#d1d5db'}"></span>
                     <span>${count} revisões</span>
                 </div>
                 <div class="text-[8px] text-gray-400 mt-0.5">${displayStr}</div>
