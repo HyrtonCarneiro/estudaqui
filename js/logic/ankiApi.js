@@ -268,11 +268,15 @@ window.ankiApi = {
                             totalStudied++;
                             timeTotalMs += rev.time;
                             
-                            if (rev.button === 1) wrongCount++;
+                            if (rev.ease === 1) wrongCount++;
                             else correctCount++;
 
-                            // Anki review types: 0=new, 1=lrn, 2=rev, 3=relrn
-                            if (rev.type === 2) reviewsCount++;
+                            // Tipos de revisão do Anki no BD oficial (revlog.type):
+                            // 0: Aprender (Learn)
+                            // 1: Revisão normal (Review)
+                            // 2: Re-aprender após falha (Relearn)
+                            // 3: Estudo personalizado/Cram (Cram)
+                            if (rev.type === 1 || rev.type === 2) reviewsCount++;
                         }
                     });
                 });
