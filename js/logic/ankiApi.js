@@ -210,7 +210,7 @@ window.ankiApi = {
             const todayObj = new Date();
 
             for (let i = 0; i < days; i++) {
-                const query = (i === 0) ? 'is:due' : `prop:due=${i}`;
+                const query = (i === 0) ? '(is:due OR is:learn OR is:new) -is:suspended' : `prop:due=${i}`;
                 const cards = await this.invoke('findCards', 6, { query });
                 
                 const nextDate = new Date(todayObj);
@@ -236,10 +236,17 @@ window.ankiApi = {
     async getSevenDayStats() {
         try {
             // 1. Current Queue (what is pending NOW)
-            const dueRes = await this.invoke('findCards', 6, { query: 'is:due' });
-            const learnRes = await this.invoke('findCards', 6, { query: 'is:learn' });
-            const currentPendente = dueRes.length + learnRes.length;
+            const [newRes, learnRes, reviewRes] = await Promise.all([
+                this.invoke('findCards', 6, { query: 'is:new -is:suspended' }),
+                this.invoke('findCards', 6, { query: 'is:learn' }),
+                this.invoke('findCards', 6, { query: 'is:review is:due' })
+            ]);
+            const currentPendente = newRes.length + learnRes.length + reviewRes.length;
             
+            // Novos adicionados nos ultimos 7 dias
+            const addedRes = await this.invoke('findCards', 6, { query: 'added:7' });
+            const added7dCount = addedRes.length;
+
             // 2. Performance (History of last 7 days)
             const ratedLast7Days = await this.invoke('findCards', 6, { query: 'rated:7' });
             
@@ -247,7 +254,6 @@ window.ankiApi = {
             let timeTotalMs = 0;
             let correctCount = 0;
             let wrongCount = 0;
-            let newCardsCount = 0;
             let reviewsCount = 0;
 
             if (ratedLast7Days.length > 0) {
@@ -256,9 +262,6 @@ window.ankiApi = {
 
                 Object.values(reviewsMap).forEach(cardReviews => {
                     if (!Array.isArray(cardReviews)) return;
-                    
-                    // Track if this card was "introduced" (first new review) in this period
-                    let wasNewInPeriod = false;
 
                     cardReviews.forEach(rev => {
                         if (rev.id >= sevenDaysAgo) {
@@ -269,12 +272,9 @@ window.ankiApi = {
                             else correctCount++;
 
                             // Anki review types: 0=new, 1=lrn, 2=rev, 3=relrn
-                            if (rev.type === 0) wasNewInPeriod = true;
                             if (rev.type === 2) reviewsCount++;
                         }
                     });
-                    
-                    if (wasNewInPeriod) newCardsCount++;
                 });
             }
 
@@ -282,7 +282,7 @@ window.ankiApi = {
             return {
                 pendente: currentPendente,
                 studied7d: totalStudied,
-                new7d: newCardsCount,
+                new7d: added7dCount,
                 rev7d: reviewsCount,
                 timeMs: timeTotalMs,
                 avgMs: totalActions > 0 ? timeTotalMs / totalActions : 0,
