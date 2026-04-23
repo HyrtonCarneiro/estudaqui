@@ -39,6 +39,19 @@ window.editaisController = {
         if (this.inputSearch) {
             this.inputSearch.addEventListener('input', () => this.render());
         }
+        if (this.inputSalario) {
+            this.inputSalario.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, "");
+                if (value === "") {
+                    e.target.value = "";
+                    return;
+                }
+                value = (parseInt(value, 10) / 100).toFixed(2) + '';
+                value = value.replace(".", ",");
+                value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+                e.target.value = value;
+            });
+        }
     },
 
     abrirModal: function(edital = null) {
@@ -166,15 +179,26 @@ window.editaisController = {
             return getNextEventDate(a) - getNextEventDate(b);
         });
         
-        if (editais.length === 0 && !search) {
-            this.container.innerHTML = ' \
-                <div class="col-span-full bg-white p-12 rounded-3xl border border-dashed border-gray-200 text-center"> \
-                    <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-300"> \
-                        <i class="ph ph-file-dashed text-4xl"></i> \
-                    </div> \
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Nenhum edital cadastrado</h3> \
-                    <p class="text-gray-500 mb-6">Comece adicionando os concursos que você pretende prestar.</p> \
-                </div>';
+        if (editais.length === 0) {
+            if (search) {
+                this.container.innerHTML = `
+                    <div class="col-span-full bg-white p-12 rounded-3xl border border-dashed border-gray-200 text-center">
+                        <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-300">
+                            <i class="ph ph-magnifying-glass text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">Nenhum resultado encontrado</h3>
+                        <p class="text-gray-500 mb-6">Não encontramos nenhum edital para "${search}".</p>
+                    </div>`;
+            } else {
+                this.container.innerHTML = `
+                    <div class="col-span-full bg-white p-12 rounded-3xl border border-dashed border-gray-200 text-center">
+                        <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-300">
+                            <i class="ph ph-file-dashed text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">Nenhum edital cadastrado</h3>
+                        <p class="text-gray-500 mb-6">Comece adicionando os concursos que você pretende prestar.</p>
+                    </div>`;
+            }
             return;
         }
 
