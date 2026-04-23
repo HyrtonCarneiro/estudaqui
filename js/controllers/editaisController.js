@@ -46,9 +46,12 @@ window.editaisController = {
                     e.target.value = "";
                     return;
                 }
-                value = (parseInt(value, 10) / 100).toFixed(2) + '';
-                value = value.replace(".", ",");
+                
+                // Remove leading zeros
+                value = parseInt(value, 10).toString();
+                // Add dots for thousands
                 value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+                
                 e.target.value = value;
             });
         }
