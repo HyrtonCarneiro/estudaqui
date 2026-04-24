@@ -189,8 +189,8 @@ window.ankiController = {
             if (elPendente) elPendente.textContent = stats.pendente || 0;
             if (elAccuracy) elAccuracy.textContent = Math.round(stats.accuracy) + '%';
             if (elWrong) elWrong.textContent = stats.wrong || 0;
-            if (elTime) elTime.textContent = Math.round(stats.timeMs / 60000) + 'm';
-            if (elAvg) elAvg.textContent = Math.round(stats.avgMs / 1000) + 's';
+            if (elTime) elTime.textContent = Math.round(stats.timeTodayMs / 60000) + 'm';
+            if (elAvg) elAvg.textContent = Math.round(stats.avgTodayMs / 1000) + 's';
 
             if (elPerformance) {
                 const score = Math.round(stats.accuracy);

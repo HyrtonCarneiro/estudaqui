@@ -281,6 +281,10 @@ window.ankiApi = {
             let correctCount = 0;
             let wrongCount = 0;
             let reviewsCount = 0;
+            
+            let timeTodayMs = 0;
+            let actionsTodayCount = 0;
+            const startOfToday = new Date().setHours(0, 0, 0, 0);
 
             if (ratedLast7Days.length > 0) {
                 const reviewsMap = await this.invokeBatch('getReviewsOfCards', 6, ratedLast7Days);
@@ -304,6 +308,11 @@ window.ankiApi = {
                             // 3: Estudo personalizado/Cram (Cram)
                             if (rev.type === 1 || rev.type === 2) reviewsCount++;
                         }
+                        
+                        if (rev.id >= startOfToday) {
+                            timeTodayMs += rev.time;
+                            actionsTodayCount++;
+                        }
                     });
                 });
             }
@@ -316,13 +325,15 @@ window.ankiApi = {
                 rev7d: reviewsCount,
                 timeMs: timeTotalMs,
                 avgMs: totalActions > 0 ? timeTotalMs / totalActions : 0,
+                timeTodayMs: timeTodayMs,
+                avgTodayMs: actionsTodayCount > 0 ? timeTodayMs / actionsTodayCount : 0,
                 correct: correctCount,
                 wrong: wrongCount,
                 accuracy: totalActions > 0 ? (correctCount / totalActions) * 100 : 0
             };
         } catch (e) {
             console.warn("Could not get 7-day stats fully: ", e);
-            return { pendente: 0, studied7d: 0, new7d: 0, rev7d: 0, timeMs: 0, avgMs: 0, correct: 0, wrong: 0, accuracy: 0 };
+            return { pendente: 0, studied7d: 0, new7d: 0, rev7d: 0, timeMs: 0, avgMs: 0, timeTodayMs: 0, avgTodayMs: 0, correct: 0, wrong: 0, accuracy: 0 };
         }
     },
 
