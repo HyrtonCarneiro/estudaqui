@@ -2,10 +2,10 @@
   "cleanUrls": true,
   "headers": [
     {
-      "source": "/firebase-messaging-sw.js",
+      "source": "/(firebase-messaging-sw\\.js|sw\\.js)",
       "headers": [
         { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "no-cache" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     }
   ],
