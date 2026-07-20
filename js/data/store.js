@@ -27,11 +27,24 @@ window.store = {
         return this.state;
     },
 
+    sortMaterias: function() {
+        if (this.state.materias) {
+            this.state.materias.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        }
+    },
+
+    sortConteudos: function() {
+        if (this.state.conteudos) {
+            this.state.conteudos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        }
+    },
+
 
     addMateria: function(nome) {
         if (!nome) throw new Error("Nome da matéria é obrigatório");
         const id = 'm' + Date.now();
         this.state.materias.push({ id, nome });
+        this.sortMaterias();
         this.save();
         return id;
     },
@@ -40,6 +53,7 @@ window.store = {
         const materia = this.state.materias.find(m => m.id === id);
         if (materia) {
             materia.nome = nome;
+            this.sortMaterias();
             this.save();
         }
     },
@@ -55,6 +69,7 @@ window.store = {
         if (!materiaId || !nome) throw new Error("Matéria e conteúdo são obrigatórios");
         const id = 'c' + Date.now();
         this.state.conteudos.push({ id, materiaId, nome, paginas: Number(paginas) || 0 });
+        this.sortConteudos();
         this.save();
         return id;
     },
@@ -63,6 +78,7 @@ window.store = {
         const index = this.state.conteudos.findIndex(c => c.id === id);
         if (index !== -1) {
             this.state.conteudos[index] = { ...this.state.conteudos[index], ...data, paginas: Number(data.paginas) || 0 };
+            this.sortConteudos();
             this.save();
         }
     },
@@ -416,6 +432,9 @@ window.store = {
 
                 // Merge cloud data into state
                 this.state = { ...this.state, ...cloudData, isAuthenticated: true, hasLoadedFromCloud: true };
+                
+                this.sortMaterias();
+                this.sortConteudos();
                 
                 // Restore displayName from top-level doc field (not inside state object)
                 if (displayName) this.state.displayName = displayName;
