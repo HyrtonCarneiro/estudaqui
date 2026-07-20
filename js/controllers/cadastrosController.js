@@ -91,21 +91,28 @@ window.cadastrosController = {
     renderMateriasSelect: function() {
         if (!this.selectMateria) return;
         const materias = window.store.getState().materias;
+        
+        const currentMateria = this.selectMateria.value;
         let html = '<option value="" disabled selected>Selecione uma matéria</option>';
         materias.forEach(m => { html += `<option value="${m.id}">${m.nome}</option>`; });
         this.selectMateria.innerHTML = html;
+        if (currentMateria) this.selectMateria.value = currentMateria;
         
         const selectCronograma = document.getElementById('select-cronograma-materia');
         if (selectCronograma) {
+            const currentCronogramaMateria = selectCronograma.value;
             let htmlCron = '<option value="" disabled selected>Selecione uma matéria</option>';
             materias.forEach(m => { htmlCron += `<option value="${m.id}">${m.nome}</option>`; });
             selectCronograma.innerHTML = htmlCron;
+            if (currentCronogramaMateria) selectCronograma.value = currentCronogramaMateria;
         }
 
         if (this.selectEditConteudoMateria) {
+            const currentEditMateria = this.selectEditConteudoMateria.value;
             let htmlEdit = '<option value="" disabled selected>Selecione uma matéria</option>';
             materias.forEach(m => { htmlEdit += `<option value="${m.id}">${m.nome}</option>`; });
             this.selectEditConteudoMateria.innerHTML = htmlEdit;
+            if (currentEditMateria) this.selectEditConteudoMateria.value = currentEditMateria;
         }
     },
 
