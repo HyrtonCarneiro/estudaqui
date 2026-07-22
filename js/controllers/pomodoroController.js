@@ -1,63 +1,111 @@
 window.pomodoroController = {
+    isOpen: false,
+
     init: function() {
         this.cacheDOM();
         this.bindEvents();
+        if (window.pomodoroLogic) {
+            this.updateUI(window.pomodoroLogic.formatTime(window.pomodoroLogic.timeLeft), 100);
+        }
     },
 
     cacheDOM: function() {
-        this.timerEl = document.getElementById('pomodoro-timer');
-        this.progressEl = document.getElementById('pomodoro-progress');
-        this.statusEl = document.getElementById('pomodoro-status');
-        this.btnToggle = document.getElementById('btn-pomodoro-toggle');
-        this.btnReset = document.getElementById('btn-pomodoro-reset');
+        this.fabEl = document.getElementById('btn-pomo-fab');
+        this.contentEl = document.getElementById('pomodoro-content');
+        this.btnClose = document.getElementById('btn-pomo-close');
+        this.labelEl = document.getElementById('pomo-label');
+        this.timerEl = document.getElementById('pomo-timer');
+        this.materiaEl = document.getElementById('pomo-materia');
+        this.btnToggle = document.getElementById('btn-pomo-toggle');
+        this.btnReset = document.getElementById('btn-pomo-reset');
     },
 
     bindEvents: function() {
+        if (this.fabEl) this.fabEl.onclick = () => this.toggleWidget();
+        if (this.btnClose) this.btnClose.onclick = () => this.closeWidget();
         if (this.btnToggle) this.btnToggle.onclick = () => this.handleToggle();
         if (this.btnReset) this.btnReset.onclick = () => this.handleReset();
+    },
+
+    toggleWidget: function() {
+        if (this.isOpen) {
+            this.closeWidget();
+        } else {
+            this.openWidget();
+        }
+    },
+
+    openWidget: function() {
+        if (!this.contentEl) return;
+        this.isOpen = true;
+        this.contentEl.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+        this.contentEl.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    },
+
+    closeWidget: function() {
+        if (!this.contentEl) return;
+        this.isOpen = false;
+        this.contentEl.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        this.contentEl.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
     },
 
     handleToggle: function() {
         if (window.pomodoroLogic.isActive) {
             window.pomodoroLogic.stop();
             this.updateIcon(false);
-            this.statusEl.textContent = "Pausado";
+            if (this.materiaEl) this.materiaEl.textContent = "Pausado";
         } else {
             window.pomodoroLogic.start(
                 (time, perc) => this.updateUI(time, perc),
                 (mode) => this.handleComplete(mode)
             );
             this.updateIcon(true);
-            this.statusEl.textContent = window.pomodoroLogic.mode === 'work' ? "Focando..." : "Descansando...";
+            if (this.materiaEl) {
+                this.materiaEl.textContent = window.pomodoroLogic.mode === 'work' ? "Foco Total (50 min)" : "Descanso (10 min)";
+            }
         }
     },
 
     updateUI: function(time, perc) {
         if (this.timerEl) this.timerEl.textContent = time;
-        if (this.progressEl) {
-            const offset = 226 - (226 * perc / 100);
-            this.progressEl.style.strokeDashoffset = offset;
-        }
     },
 
     updateIcon: function(active) {
         if (!this.btnToggle) return;
-        this.btnToggle.innerHTML = active ? '<i class="ph ph-pause-fill text-xl"></i>' : '<i class="ph ph-play-fill text-xl"></i>';
+        this.btnToggle.textContent = active ? "Pausar" : "Iniciar";
     },
 
     handleReset: function() {
-        const time = window.pomodoroLogic.reset();
+        const currentMode = window.pomodoroLogic ? window.pomodoroLogic.mode : 'work';
+        const time = window.pomodoroLogic.reset(currentMode);
         this.updateUI(time, 100);
         this.updateIcon(false);
-        this.statusEl.textContent = "Pronto para o Foco";
+        if (this.labelEl) {
+            this.labelEl.textContent = currentMode === 'work' ? "Modo Foco" : "Modo Descanso";
+        }
+        if (this.materiaEl) {
+            this.materiaEl.textContent = currentMode === 'work' ? "Pronto para o Foco (50m)" : "Pronto para o Descanso (10m)";
+        }
     },
 
-    handleComplete: function(mode) {
-        const nextMode = mode === 'work' ? 'break' : 'work';
-        window.utils.showToast(mode === 'work' ? "Trabalho concluído! Hora de descansar." : "Descanso finalizado! Vamos voltar?", "info");
+    handleComplete: function(completedMode) {
+        // Toca o alarme sonoro
+        if (window.pomodoroLogic && window.pomodoroLogic.playAlarm) {
+            window.pomodoroLogic.playAlarm(completedMode);
+        }
+
+        const nextMode = completedMode === 'work' ? 'break' : 'work';
+        const msg = completedMode === 'work'
+            ? "🔔 Sessão de estudo de 50 minutos concluída! Hora de descansar 10 minutos."
+            : "🔔 Descanso de 10 minutos finalizado! Hora de voltar ao foco!";
+            
+        if (window.utils && window.utils.showToast) {
+            window.utils.showToast(msg, "info");
+        }
         
         window.pomodoroLogic.reset(nextMode);
         this.handleReset();
-        this.statusEl.textContent = nextMode === 'work' ? "Pronto para o Foco" : "Pronto para o Descanso";
+        this.openWidget();
     }
 };
+
