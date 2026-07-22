@@ -24,6 +24,7 @@ window.cronogramaController = {
         this.editInputPaginas = document.getElementById('input-cronograma-edit-paginas');
         this.addSelectionArea = document.getElementById('add-cronograma-selection-area');
         this.modalTitle = document.querySelector('#modal-cronograma h3');
+        this.sidebarResumo = document.getElementById('sidebar-cronograma-resumo');
     },
 
     bindEvents: function() {
@@ -204,16 +205,66 @@ window.cronogramaController = {
     renderTable: function() {
         if (!this.tbody) return;
         this.tbody.innerHTML = '';
+        if (this.sidebarResumo) this.sidebarResumo.innerHTML = '';
         
         const itens = window.store.getState().cronograma;
         if (itens.length === 0) {
             this.tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-500">Nenhum estudo no cronograma.</td></tr>`;
+            if (this.sidebarResumo) {
+                this.sidebarResumo.innerHTML = '<p class="text-xs text-gray-400 italic">Cronograma vazio.</p>';
+            }
             return;
         }
 
         // 1. Find the earliest week to calculate "Semana X"
         const sortedSemanas = [...new Set(itens.map(i => i.semana))].sort();
         const firstSemanaDate = new Date(sortedSemanas[0] + 'T12:00:00');
+
+        // Render Sidebar Summary
+        if (this.sidebarResumo) {
+            const resumoSemanas = {};
+            itens.forEach(item => {
+                if (!resumoSemanas[item.semana]) resumoSemanas[item.semana] = 0;
+                resumoSemanas[item.semana] += (item.paginas || 0);
+            });
+
+            sortedSemanas.forEach((semana) => {
+                const totalPaginas = resumoSemanas[semana] || 0;
+                const diferenca = ((totalPaginas / 86) - 1) * 100;
+                const diffRounded = Math.round(diferenca);
+                let diferencaText = '';
+                let diferencaColor = 'text-gray-400';
+                
+                if (totalPaginas === 0) {
+                    diferencaText = '0%';
+                } else if (diffRounded > 0) {
+                    diferencaText = `+${diffRounded}%`;
+                    diferencaColor = 'text-red-500';
+                } else if (diffRounded < 0) {
+                    diferencaText = `${diffRounded}%`;
+                    diferencaColor = 'text-primary-500';
+                } else {
+                    diferencaText = `Na média`;
+                    diferencaColor = 'text-green-500';
+                }
+
+                // Calcular o número da semana para exibir no resumo
+                const semanaDate = new Date(semana + 'T12:00:00');
+                const diffTime = semanaDate - firstSemanaDate;
+                const weekNum = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors';
+                div.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-gray-800">Semana ${weekNum}</span>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${totalPaginas} Pág.</span>
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-widest ${diferencaColor}">${diferencaText}</span>
+                `;
+                this.sidebarResumo.appendChild(div);
+            });
+        }
 
         let lastRenderedSemana = null;
 
