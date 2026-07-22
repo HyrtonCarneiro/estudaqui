@@ -216,20 +216,29 @@ window.cronogramaController = {
             return;
         }
 
-        // 1. Find the earliest week to calculate "Semana X"
+        // 1. Group status and pages by week
         const sortedSemanas = [...new Set(itens.map(i => i.semana))].sort();
         const firstSemanaDate = new Date(sortedSemanas[0] + 'T12:00:00');
 
+        const semanaStatus = {};
+        itens.forEach(item => {
+            if (!semanaStatus[item.semana]) {
+                semanaStatus[item.semana] = { total: 0, concluidos: 0, totalPaginas: 0 };
+            }
+            semanaStatus[item.semana].total += 1;
+            if (item.concluido) {
+                semanaStatus[item.semana].concluidos += 1;
+            }
+            semanaStatus[item.semana].totalPaginas += (item.paginas || 0);
+        });
+
         // Render Sidebar Summary
         if (this.sidebarResumo) {
-            const resumoSemanas = {};
-            itens.forEach(item => {
-                if (!resumoSemanas[item.semana]) resumoSemanas[item.semana] = 0;
-                resumoSemanas[item.semana] += (item.paginas || 0);
-            });
-
             sortedSemanas.forEach((semana) => {
-                const totalPaginas = resumoSemanas[semana] || 0;
+                const info = semanaStatus[semana] || { total: 0, concluidos: 0, totalPaginas: 0 };
+                const totalPaginas = info.totalPaginas;
+                const isWeekCompleted = info.total > 0 && info.concluidos === info.total;
+
                 const diferenca = ((totalPaginas / 86) - 1) * 100;
                 const diffRounded = Math.round(diferenca);
                 let diferencaText = '';
@@ -254,10 +263,13 @@ window.cronogramaController = {
                 const weekNum = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
 
                 const div = document.createElement('div');
-                div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors';
+                div.className = `flex items-center justify-between p-3 ${isWeekCompleted ? 'bg-green-50/70 border-green-200' : 'bg-gray-50 border-gray-100'} rounded-xl border transition-colors`;
                 div.innerHTML = `
                     <div class="flex flex-col">
-                        <span class="text-xs font-bold text-gray-800">Semana ${weekNum}</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold ${isWeekCompleted ? 'text-green-800' : 'text-gray-800'}">Semana ${weekNum}</span>
+                            ${isWeekCompleted ? '<i class="ph-fill ph-check-circle text-green-500 text-sm" title="Semana Concluída"></i>' : ''}
+                        </div>
                         <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${totalPaginas} Pág.</span>
                     </div>
                     <span class="text-[10px] font-black uppercase tracking-widest ${diferencaColor}">${diferencaText}</span>
@@ -271,6 +283,9 @@ window.cronogramaController = {
         itens.forEach(item => {
             // 2. Detect Week Change and Render Divider
             if (item.semana !== lastRenderedSemana) {
+                const info = semanaStatus[item.semana] || { total: 0, concluidos: 0 };
+                const isWeekCompleted = info.total > 0 && info.concluidos === info.total;
+
                 const currentSemanaDate = new Date(item.semana + 'T12:00:00');
                 const diffTime = currentSemanaDate - firstSemanaDate;
                 const weekNum = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
@@ -280,8 +295,16 @@ window.cronogramaController = {
                 divider.innerHTML = `
                     <td colspan="5" class="p-4 py-3">
                         <div class="flex items-center gap-3">
-                            <span class="bg-primary-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-md">Semana ${weekNum}</span>
+                            <span class="${isWeekCompleted ? 'bg-green-600' : 'bg-primary-600'} text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
+                                ${isWeekCompleted ? '<i class="ph-bold ph-check text-xs"></i>' : ''}
+                                Semana ${weekNum}
+                            </span>
                             <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Início: ${window.utils.formatDateBR(item.semana)}</span>
+                            ${isWeekCompleted ? `
+                                <span class="bg-green-100 text-green-700 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-green-200">
+                                    <i class="ph-fill ph-check-circle text-xs"></i> Semana Concluída
+                                </span>
+                            ` : ''}
                         </div>
                     </td>
                 `;
