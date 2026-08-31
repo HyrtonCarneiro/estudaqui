@@ -73,9 +73,9 @@ window.downloadsController = {
 
         const pyScript = `import json
 import urllib.request
-from aqt import mw, gui_hooks
-from aqt.utils import showInfo
+import threading
 import datetime
+from aqt import mw, gui_hooks
 
 # === CONFIGURAÇÃO AUTOMÁTICA ===
 ENDPOINT = "https://concursosti.vercel.app/api/anki-sync/"
@@ -83,16 +83,22 @@ USERNAME = "${state.currentUser}"
 MONITOR_KEY = "${monitorKey}"
 # ===============================
 
+_UNIT_SEP = chr(31)  # \\x1f - separador de tags do Anki
+
 def get_anki_data():
+    """Coleta todos os dados do Anki. DEVE rodar na main thread (Qt)."""
     try:
+        col = mw.col
+        if not col:
+            return None
+
         # 1. Contagens básicas
-        new_cnt = len(mw.col.find_cards("is:new"))
-        learn_cnt = len(mw.col.find_cards("is:learn"))
-        review_cnt = len(mw.col.find_cards("is:review is:due"))
+        new_cnt = len(col.find_cards("is:new"))
+        learn_cnt = len(col.find_cards("is:learn"))
+        review_cnt = len(col.find_cards("is:review is:due"))
         
         # 2. Heatmap (últimos 365 dias)
-        # SQL: Agrupa revisões por data (formato YYYY-MM-DD)
-        heatmap = mw.col.db.all("""
+        heatmap = col.db.all("""
             select date(id/1000, 'unixepoch', 'localtime') as day, count() 
             from revlog 
             where id > (strftime('%s','now','-365 days') * 1000)
@@ -101,14 +107,11 @@ def get_anki_data():
         """)
         
         # 3. Forecast (próximos 30 dias)
-        # Simplificado: busca cards por data de vencimento
-        # mw.col.sched.today é o dia 'zero' para o buscador
         forecast = []
         for i in range(30):
-            query = "is:due" if i == 0 else f"prop:due={i}"
-            cnt = len(mw.col.find_cards(query))
+            query = "prop:due=0" if i == 0 else f"prop:due={i}"
+            cnt = len(col.find_cards(query))
             
-            # Formatar label compatível com o JS
             d = datetime.date.today() + datetime.timedelta(days=i)
             if i == 0: label = "Hoje"
             elif i == 1: label = "Amanhã"
@@ -119,41 +122,29 @@ def get_anki_data():
         # 4. Syllabus e Tag Lapses (Stats por Tag)
         syllabus = {}
         tag_lapses = {}
-        # SQL robusto: Garantimos que buscamos n.tags no join com a tabela notes
-        cards = mw.col.db.all("SELECT c.did, n.tags as ntags, c.lapses, c.ivl, c.queue, c.type FROM cards c JOIN notes n ON c.nid = n.id")
+        cards = col.db.all("SELECT c.did, n.tags as ntags, c.lapses, c.ivl, c.queue, c.type FROM cards c JOIN notes n ON c.nid = n.id")
         system_tags = {'leech', 'marked'}
         
         for did, ntags, lapses, ivl, queue, ctype in cards:
-            # No Anki, n.tags é uma string que pode conter \x1f ou espaços
             if not ntags: ntags = ""
-            tag_list = ntags.replace('\x1f', ' ').strip().split()
-            
-            # Filtramos tags de sistema e normalizamos
+            tag_list = ntags.replace(_UNIT_SEP, ' ').strip().split()
             tags = [t.replace('_', ' ').replace('-', ' ').capitalize() for t in tag_list if t.lower() not in system_tags]
-            
             subjects = tags if tags else []
-                
-            # Fallback para Deck se não houver tags legítimas
             if not subjects:
-                dname = mw.col.decks.name(did)
+                dname = col.decks.name(did)
                 if dname and dname != 'Default':
                     subjects.append(dname.split('::')[0])
             
             for clean in subjects:
-                # Syllabus (Estatísticas por Assunto)
                 if clean not in syllabus:
                     syllabus[clean] = {"new": 0, "young": 0, "mature": 0, "total": 0, "lapses": 0}
-                
                 s = syllabus[clean]
                 s["total"] += 1
                 s["lapses"] += (lapses or 0)
-                
                 if queue >= 0:
                     if ctype == 0: s["new"] += 1
                     elif ivl >= 21: s["mature"] += 1
                     else: s["young"] += 1
-                
-                # Tag Lapses (somente os com erro acumulado)
                 if lapses and lapses > 0:
                     tag_lapses[clean] = tag_lapses.get(clean, 0) + lapses
 
@@ -168,39 +159,69 @@ def get_anki_data():
         print(f"Erro ao coletar dados Anki: {e}")
         return None
 
-def sync_to_cloud():
-    all_data = get_anki_data()
-    if not all_data: return
-    
-    data = {
-        "username": USERNAME, 
-        "key": MONITOR_KEY, 
-        "newCount": all_data["counts"]["new"], 
-        "learnCount": all_data["counts"]["learn"], 
-        "reviewCount": all_data["counts"]["review"],
-        "heatmapData": all_data["heatmap"],
-        "forecastData": all_data["forecast"],
-        "syllabusData": all_data["syllabus"],
-        "tagLapses": all_data["tag_lapses"]
-    }
-    
-    req = urllib.request.Request(ENDPOINT)
-    req.add_header('Content-Type', 'application/json; charset=utf-8')
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AnkiSync/1.0')
-    jsondata = json.dumps(data).encode('utf-8')
-    
+def _send_http(all_data):
+    """Envia dados para a nuvem. Roda em background thread."""
     try:
-        with urllib.request.urlopen(req, jsondata, timeout=15) as response:
+        data = {
+            "username": USERNAME, 
+            "key": MONITOR_KEY, 
+            "newCount": all_data["counts"]["new"], 
+            "learnCount": all_data["counts"]["learn"], 
+            "reviewCount": all_data["counts"]["review"],
+            "heatmapData": all_data["heatmap"],
+            "forecastData": all_data["forecast"],
+            "syllabusData": all_data["syllabus"],
+            "tagLapses": all_data["tag_lapses"]
+        }
+        
+        req = urllib.request.Request(ENDPOINT)
+        req.add_header('Content-Type', 'application/json; charset=utf-8')
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AnkiSync/1.0')
+        jsondata = json.dumps(data).encode('utf-8')
+        
+        with urllib.request.urlopen(req, jsondata, timeout=10) as response:
             res_data = json.loads(response.read().decode('utf-8'))
             if res_data.get('success'):
-                # showInfo("Cloud Sync: Dados atualizados!", title="Concursos Hyrtinho")
                 print("Cloud Sync: Sucesso")
             else:
-                print(f"Erro na Sincronização Cloud: {res_data.get('error')}")
+                print(f"Erro Cloud: {res_data.get('error')}")
     except Exception as e:
         print(f"Erro ao sincronizar nuvem: {e}")
 
-gui_hooks.sync_did_finish.append(sync_to_cloud)`;
+def _collect_and_send():
+    """Coleta dados na main thread e envia HTTP em background thread."""
+    all_data = get_anki_data()
+    if all_data:
+        threading.Thread(target=_send_http, args=(all_data,), daemon=True).start()
+
+def sync_to_cloud():
+    """Agenda a coleta na main thread do Qt (thread-safe)."""
+    if mw.col:
+        mw.taskman.run_on_main(_collect_and_send)
+
+_debounce_timer = None
+
+def on_card_answered(reviewer, card, ease):
+    global _debounce_timer
+    if _debounce_timer is not None:
+        _debounce_timer.cancel()
+    _debounce_timer = threading.Timer(2.0, sync_to_cloud)
+    _debounce_timer.start()
+
+def on_state_changed(next_state, prev_state):
+    if prev_state == "review":
+        sync_to_cloud()
+
+# Ganchos do Anki:
+# 1. Ao responder cada card (debounced 2s)
+gui_hooks.reviewer_did_answer_card.append(on_card_answered)
+# 2. Ao concluir ou sair da sessao de estudo
+gui_hooks.state_did_change.append(on_state_changed)
+# 3. Ao sincronizar com AnkiWeb
+gui_hooks.sync_did_finish.append(sync_to_cloud)
+# 4. Ao abrir o Anki
+gui_hooks.main_window_did_init.append(sync_to_cloud)
+`;
 
         if (typeof JSZip !== 'undefined') {
             try {

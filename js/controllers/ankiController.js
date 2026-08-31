@@ -206,15 +206,23 @@ window.ankiController = {
                 elPerformance.className = `text-4xl font-black relative z-10 ${stats.studied7d > 0 ? (score >= 80 ? 'text-amber-500' : 'text-gray-400') : 'text-gray-300'}`;
             }
 
-            // Simple indicator for source (since we can't easily check 'success' state from the flattened stats object)
-            // But usually, if stats returned, we are connected.
             if (sourceIndicator) {
-                sourceIndicator.innerHTML = `<span class="flex items-center gap-1.5 text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-full"><i class="ph-bold ph-calendar"></i> Métricas dos últimos 7 dias</span>`;
+                sourceIndicator.innerHTML = `<span class="flex items-center gap-1.5 text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-full"><i class="ph-bold ph-plugs-connected"></i> Anki Conectado — Métricas dos últimos 7 dias</span>`;
                 sourceIndicator.classList.remove('hidden');
             }
 
         } catch(e) {
             console.error("Error updating 7-day stats:", e);
+
+            // Bug 5: Indicador visual quando Anki está offline
+            const offlineEls = [elNew, elRev, elPendente, elAccuracy, elWrong, elTime, elAvg];
+            offlineEls.forEach(el => { if (el) el.textContent = '--'; });
+            if (elPerformance) { elPerformance.textContent = '--'; elPerformance.className = 'text-4xl font-black relative z-10 text-gray-300'; }
+
+            if (sourceIndicator) {
+                sourceIndicator.innerHTML = `<span class="flex items-center gap-1.5 text-[9px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full"><i class="ph-bold ph-warning"></i> Anki Fechado — Métricas de 7 dias indisponíveis</span>`;
+                sourceIndicator.classList.remove('hidden');
+            }
         }
     },
 

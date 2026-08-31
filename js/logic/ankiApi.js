@@ -236,7 +236,7 @@ window.ankiApi = {
             const todayObj = new Date();
 
             for (let i = 0; i < days; i++) {
-                const query = (i === 0) ? '(is:due OR is:learn OR is:new) -is:suspended' : `prop:due=${i}`;
+                const query = `prop:due=${i}`;
                 const cards = await this.invoke('findCards', 6, { query });
                 
                 const nextDate = new Date(todayObj);
@@ -270,8 +270,8 @@ window.ankiApi = {
             const currentPendente = newRes.length + learnRes.length + reviewRes.length;
             
             // Novos adicionados nos ultimos 7 dias
-            const addedRes = await this.invoke('findCards', 6, { query: 'added:7' });
-            const added7dCount = addedRes.length;
+            const introducedRes = await this.invoke('findCards', 6, { query: 'introduced:7' });
+            const introduced7dCount = introducedRes.length;
 
             // 2. Performance (History of last 7 days)
             const ratedLast7Days = await this.invoke('findCards', 6, { query: 'rated:7' });
@@ -321,7 +321,7 @@ window.ankiApi = {
             return {
                 pendente: currentPendente,
                 studied7d: totalStudied,
-                new7d: added7dCount,
+                new7d: introduced7dCount,
                 rev7d: reviewsCount,
                 timeMs: timeTotalMs,
                 avgMs: totalActions > 0 ? timeTotalMs / totalActions : 0,
