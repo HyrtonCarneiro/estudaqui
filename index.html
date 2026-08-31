@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ConcursosTI">
-    <link rel="apple-touch-icon" href="/icon-192.png">
     <meta name="theme-color" content="#3b5df5">
-    <title>ConcursosTI | Sua Aprovação Começa Aqui</title>
+    <title>Concursos Hyrtinho | Sua Aprovação Começa Aqui</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -82,15 +77,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
     
     <!-- Phosphor Icons (Updated CDN version 2.1.1) -->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
-
-    <!-- Quill Editor (CDN) -->
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <!-- App Configuration -->
     <script src="js/config/settings.js"></script>
@@ -118,7 +109,7 @@
                 <div class="w-16 h-16 bg-primary-600 rounded-2xl shadow-xl-primary flex items-center justify-center mb-6 rotate-3">
                     <i class="ph-fill ph-graduation-cap text-white text-3xl"></i>
                 </div>
-                <h1 class="text-4xl font-black text-gray-900 tracking-tight">Concursos<span class="text-primary-600">TI</span></h1>
+                <h1 class="text-4xl font-black text-gray-900 tracking-tight">Concursos <span class="text-primary-600">Hyrtinho</span></h1>
                 <p class="text-gray-400 font-medium text-sm mt-2 uppercase tracking-widest">Plataforma de Elite</p>
             </div>
             
@@ -154,19 +145,18 @@
                         <i class="ph-bold ph-graduation-cap text-white text-xl"></i>
                     </div>
                     <div>
-                        <span class="text-xl font-black text-gray-900 tracking-tighter">ConcursosTI</span>
+                        <span class="text-xl font-black text-gray-900 tracking-tighter">Concursos Hyrtinho</span>
                         <div class="h-0.5 w-full bg-primary-600 rounded-full mt-[-2px]"></div>
                     </div>
                 </div>
                 
-                <div class="hidden lg:flex flex-1 justify-center px-4">
+                <div class="flex flex-1 justify-center px-4">
                     <div class="bg-gray-100/50 p-1.5 rounded-2xl gap-1 flex flex-wrap justify-center">
                         <button onclick="window.appControllers.navigate('dashboard')" id="nav-dashboard" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-layout"></i> Dashboard</button>
                         <button onclick="window.appControllers.navigate('editais')" id="nav-editais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-newspaper"></i> Editais</button>
                         <button onclick="window.appControllers.navigate('cadastros')" id="nav-cadastros" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-database"></i> Cadastros</button>
                         <button onclick="window.appControllers.navigate('cronograma')" id="nav-cronograma" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-calendar-check"></i> Cronograma</button>
                         <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files"></i> Materiais</button>
-                        <button onclick="window.appControllers.navigate('metodo')" id="nav-metodo" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-strategy"></i> Meu Método</button>
                         <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
                         <button onclick="window.appControllers.navigate('downloads')" id="nav-downloads" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-download-simple"></i> Downloads</button>
                         <button onclick="window.appControllers.navigate('anki')" id="nav-anki" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-cards"></i> Anki</button>
@@ -181,85 +171,15 @@
             </div>
         </nav>
 
-        <!-- Mobile Bottom Navigation (Visible only on lg:hidden) -->
-        <nav id="mobile-nav" class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 flex justify-around p-3 z-[110] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] safe-area-bottom">
-            <button onclick="window.appControllers.navigate('dashboard')" id="mobile-nav-dashboard" class="flex flex-col items-center gap-1 group flex-1">
-                <i class="ph ph-layout text-xl text-gray-400 group-hover:text-primary-600 transition-colors"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-primary-600">Dashboard</span>
-            </button>
-            <button onclick="window.appControllers.navigate('cronograma')" id="mobile-nav-cronograma" class="flex flex-col items-center gap-1 group flex-1">
-                <i class="ph ph-calendar-check text-xl text-gray-400 group-hover:text-primary-600 transition-colors"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-primary-600">Cronograma</span>
-            </button>
-            <button onclick="window.appControllers.navigate('materiais')" id="mobile-nav-materiais" class="flex flex-col items-center gap-1 group flex-1">
-                <i class="ph ph-files text-xl text-gray-400 group-hover:text-primary-600 transition-colors"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-primary-600">Materiais</span>
-            </button>
-            <button onclick="window.appControllers.navigate('anki')" id="mobile-nav-anki" class="flex flex-col items-center gap-1 group flex-1">
-                <i class="ph-bold ph-cards text-xl text-gray-400 group-hover:text-primary-600 transition-colors"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-primary-600">Anki</span>
-            </button>
-            <button onclick="window.appControllers.toggleMobileMoreMenu()" class="flex flex-col items-center gap-1 group flex-1">
-                <i class="ph ph-dots-three-outline-vertical text-xl text-gray-400 group-hover:text-primary-600 transition-colors"></i>
-                <span class="text-[8px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-primary-600">Mais</span>
-            </button>
-        </nav>
-
-        <!-- Mobile More Menu (Overlay) -->
-        <div id="mobile-more-menu" class="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm hidden animate-fade-in" onclick="this.classList.add('hidden')">
-            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 pb-12 translate-y-full transition-transform duration-300" onclick="event.stopPropagation()">
-                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8 cursor-pointer" onclick="document.getElementById('mobile-more-menu').classList.add('hidden')"></div>
-                <h3 class="text-center font-black text-gray-900 uppercase tracking-widest text-xs mb-8">Outras Seções</h3>
-                <div class="grid grid-cols-3 gap-6">
-                    <button onclick="window.appControllers.navigate('editais')" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400"><i class="ph ph-newspaper text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight">Editais</span>
-                    </button>
-                    <button onclick="window.appControllers.navigate('cadastros')" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400"><i class="ph ph-database text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight">Cadastros</span>
-                    </button>
-                    <button onclick="window.appControllers.navigate('links')" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400"><i class="ph ph-link text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight">Links</span>
-                    </button>
-                    <button onclick="window.appControllers.navigate('metodo')" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400"><i class="ph ph-strategy text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight">Meu Método</span>
-                    </button>
-                    <button onclick="window.appControllers.navigate('downloads')" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400"><i class="ph ph-download-simple text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight">Downloads</span>
-                    </button>
-                    <button onclick="window.appControllers.navigate('admin')" id="mobile-nav-admin" style="display: none;" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-400"><i class="ph-bold ph-shield-check text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight">Admin</span>
-                    </button>
-                    <button onclick="window.appControllers.logout()" class="flex flex-col items-center gap-2">
-                        <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-400"><i class="ph ph-sign-out text-2xl"></i></div>
-                        <span class="text-[8px] font-bold uppercase tracking-tight text-red-400">Sair</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-
         <!-- Pages Content -->
         <main class="max-w-7xl mx-auto p-6">
             
             <!-- Dashboard Page -->
             <section id="page-dashboard" class="page-section hidden page-transition">
                 <div class="mb-10 flex flex-wrap items-end justify-between gap-6">
-                    <div class="flex items-center gap-3">
-                        <div id="push-status-dot" class="w-2 h-2 rounded-full bg-gray-300" title="Status das Notificações"></div>
-                        <div>
-                            <h2 class="text-3xl font-black text-gray-900 tracking-tight">Sua Evolução</h2>
-                            <p class="text-gray-400 text-sm font-medium">Resumo do seu desempenho e planejamento</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mt-4 lg:hidden">
-                        <button onclick="window.notificationService.requestPermission()" id="btn-enable-notifications" class="px-5 py-2 text-xs font-bold text-primary-500 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-bell-ringing"></i> Ativar Notificações</button>
-                        <button onclick="window.notificationService.manualTestPush()" class="px-5 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-paper-plane-tilt"></i> Enviar Teste</button>
+                    <div>
+                        <h2 class="text-3xl font-black text-gray-900 tracking-tight">Sua Evolução</h2>
+                        <p class="text-gray-400 text-sm font-medium">Resumo do seu desempenho e planejamento</p>
                     </div>
                     <div id="dash-overall-progress-container" class="bg-white px-6 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
                         <div class="text-right">
@@ -860,80 +780,6 @@
                 </div>
             </section>
 
-            <!-- Metodo Page (Premium Text Editor Grid) -->
-            <section id="page-metodo" class="page-section hidden page-transition">
-                <div class="mb-10 flex flex-wrap items-end justify-between gap-6">
-                    <div>
-                        <h2 class="text-3xl font-black text-gray-900 tracking-tight">Estratégia de Estudos</h2>
-                        <p class="text-gray-400 text-sm font-medium">Cronograma Detalhado Passo a Passo</p>
-                    </div>
-                    <div id="metodo-status" class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-0 transition-opacity duration-300 bg-white px-4 py-2 rounded-full border border-gray-100 shadow-sm">
-                        <i class="ph-bold ph-cloud-check text-green-500 text-sm"></i> Sincronizado
-                    </div>
-                </div>
-
-                <!-- Custom Editor Styling -->
-                <style>
-                    .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #f3f4f6 !important; padding: 0.75rem !important; background: #fcfdfe; }
-                    .ql-container.ql-snow { border: none !important; height: 280px !important; font-family: 'Outfit', sans-serif !important; font-size: 14px !important; color: #374151 !important; line-height: 1.6 !important; }
-                    .ql-editor { padding: 1.5rem !important; }
-                    .ql-editor.ql-blank::before { color: #d1d5db !important; font-style: normal !important; opacity: 0.5; }
-                    .method-card { background: white; border-radius: 2rem; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); transition: all 0.3s ease; }
-                    .method-card:hover { border-color: #3b5df533; box-shadow: 0 10px 15px -3px rgb(59 93 245 / 0.1); transform: translateY(-4px); }
-                </style>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <!-- Segunda -->
-                    <div class="method-card">
-                        <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-                            <span class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Segunda-feira</span>
-                            <i class="ph-bold ph-calendar-blank text-gray-300"></i>
-                        </div>
-                        <div id="editor-segunda"></div>
-                    </div>
-                    <!-- Terça -->
-                    <div class="method-card">
-                        <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-                            <span class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Terça-feira</span>
-                            <i class="ph-bold ph-calendar-blank text-gray-300"></i>
-                        </div>
-                        <div id="editor-terca"></div>
-                    </div>
-                    <!-- Quarta -->
-                    <div class="method-card">
-                        <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-                            <span class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Quarta-feira</span>
-                            <i class="ph-bold ph-calendar-blank text-gray-300"></i>
-                        </div>
-                        <div id="editor-quarta"></div>
-                    </div>
-                    <!-- Quinta -->
-                    <div class="method-card">
-                        <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-                            <span class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Quinta-feira</span>
-                            <i class="ph-bold ph-calendar-blank text-gray-300"></i>
-                        </div>
-                        <div id="editor-quinta"></div>
-                    </div>
-                    <!-- Sexta -->
-                    <div class="method-card">
-                        <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-                            <span class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Sexta-feira</span>
-                            <i class="ph-bold ph-calendar-blank text-gray-300"></i>
-                        </div>
-                        <div id="editor-sexta"></div>
-                    </div>
-                    <!-- Final de Semana -->
-                    <div class="method-card">
-                        <div class="px-6 py-4 border-b border-gray-50 bg-primary-50/50 flex items-center justify-between">
-                            <span class="text-[10px] font-black text-primary-600 uppercase tracking-widest font-black">Final de Semana</span>
-                            <i class="ph-fill ph-star text-primary-400"></i>
-                        </div>
-                        <div id="editor-fds"></div>
-                    </div>
-                </div>
-            </section>
-
             <!-- Anki Dashboard Page -->
             <section id="page-anki" class="page-section hidden page-transition">
                 <div class="mb-10 flex items-center justify-between">
@@ -967,7 +813,7 @@
                         <button id="btn-save-anki-url" class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-black rounded-2xl shadow-lg transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2">
                             <i class="ph-bold ph-arrows-clockwise"></i> Tentar Conectar
                         </button>
-                        <p class="text-[9px] text-gray-400 mt-4 font-medium italic text-center">Adicione o IP do computador com o Anki aberto.<br>Celular e PC devem estar na mesma rede Wi-Fi.<br>No PC, descubra o IP com: <code class="bg-gray-100 px-1 rounded text-gray-600">ipconfig</code></p>
+                        <p class="text-[9px] text-gray-400 mt-4 font-medium italic text-center">Adicione o endereço do AnkiConnect (ex: <code class="bg-gray-100 px-1 rounded text-gray-600">localhost:8765</code> ou <code class="bg-gray-100 px-1 rounded text-gray-600">127.0.0.1:8765</code>).</p>
                     </div>
 
                 </div>
@@ -1244,7 +1090,7 @@
                                     <span class="text-[10px] font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full uppercase tracking-widest">NOVO</span>
                                 </div>
                             </div>
-                            <p class="text-gray-500 text-sm mb-6 leading-relaxed">Sincroniza seus cards diretamente com a nuvem. Receba notificações no celular <strong>mesmo com o PC desligado</strong>. Sem necessidade de configurar IP ou manter janelas abertas.</p>
+                            <p class="text-gray-500 text-sm mb-6 leading-relaxed">Sincroniza seus cards do Anki Desktop diretamente com o site. Acompanhe revisões pendentes, novos cards e estatísticas em tempo real pelo seu painel.</p>
                             
                             <div class="space-y-3 mb-6">
                                 <button onclick="window.downloadsController.downloadAnkiAddon()" class="w-full bg-gray-900 hover:bg-primary-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
@@ -1321,9 +1167,6 @@
         </div>
     </div>
 
-    <!-- Quill Editor (CDN Script) -->
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-
     <!-- Scripts (Zero Build Import System) -->
     <!-- 1. Config / Utils -->
     <script src="js/config/firebase.js"></script>
@@ -1335,10 +1178,8 @@
     <script src="js/logic/cronogramaLogic.js"></script>
     <script src="js/logic/spacedRepetition.js"></script>
     <script src="js/logic/pomodoro.js"></script>
-    <script src="js/logic/metodoLogic.js"></script>
     <!-- 4. Services -->
     <script src="js/services/ankiService.js"></script>
-    <script src="js/services/notificationService.js"></script>
     <!-- 5. Controllers -->
     <script src="js/controllers/appController.js"></script>
     <script src="js/controllers/dashboardController.js"></script>
@@ -1350,26 +1191,8 @@
     <script src="js/controllers/adminController.js"></script>
     <script src="js/controllers/linksController.js"></script>
     <script src="js/controllers/downloadsController.js"></script>
-    <script src="js/controllers/metodoController.js"></script>
     <script src="js/logic/ankiApi.js"></script>
     <script src="js/controllers/ankiController.js"></script>
     <script src="js/controllers/main.js"></script>
-
-    <!-- Pre-register Firebase SW on page load so it's active when notifications are requested -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                .then(function(reg) { console.log('SW pre-registered:', reg.scope); })
-                .catch(function(err) { console.warn('SW pre-register failed:', err.message); });
-        }
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // sw.js foi unificado com firebase-messaging-sw.js — sem registro separado
-                console.log('Cache SW unificado com Firebase SW.');
-            });
-        }
-    </script>
 </body>
 </html>

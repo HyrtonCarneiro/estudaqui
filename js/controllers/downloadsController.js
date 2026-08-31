@@ -193,7 +193,7 @@ def sync_to_cloud():
         with urllib.request.urlopen(req, jsondata, timeout=15) as response:
             res_data = json.loads(response.read().decode('utf-8'))
             if res_data.get('success'):
-                # showInfo("Cloud Sync: Dados atualizados!", title="ConcursosTI")
+                # showInfo("Cloud Sync: Dados atualizados!", title="Concursos Hyrtinho")
                 print("Cloud Sync: Sucesso")
             else:
                 print(f"Erro na Sincronização Cloud: {res_data.get('error')}")
@@ -202,7 +202,7 @@ def sync_to_cloud():
 
 gui_hooks.sync_did_finish.append(sync_to_cloud)`;
 
-        this._downloadFile('concursos_ti_sync.py', pyScript, 'text/x-python');
+        this._downloadFile('concursos_hyrtinho_sync.py', pyScript, 'text/x-python');
         window.utils.showToast("Add-on customizado baixado!", "success");
     },
 
@@ -214,7 +214,7 @@ gui_hooks.sync_did_finish.append(sync_to_cloud)`;
 chcp 65001 >nul
 title Faxina Anki Monitor
 echo ========================================================
-echo        FERRAMENTA DE LIMPEZA - ConcursosTI
+echo        FERRAMENTA DE LIMPEZA - Concursos Hyrtinho
 echo ========================================================
 echo:
 echo 1. Encerrando processos antigos...

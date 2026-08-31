@@ -12,14 +12,12 @@ window.store = {
         simulados: [],  // { id, nome, nota, data }
         materiais: [],  // { conteudoId, links: [], notas: "" }
         linksUteis: [], // { id, titulo, url }
-        metodo: {},     // { segunda: "...", terca: "...", ... }
         estatisticas: {
             streak: 0,
             ultimaDataEstudo: null,
             totalPaginasLidas: 0,
             totalHorasEstudo: 0
         },
-        fcmToken: null, // Guardar token no estado para persistência e fácil acesso
         hasLoadedFromCloud: false
     },
 
@@ -399,14 +397,12 @@ window.store = {
                 simulados: [],
                 materiais: [],
                 linksUteis: [],
-                metodo: {},
                 estatisticas: {
                     streak: 0,
                     ultimaDataEstudo: null,
                     totalPaginasLidas: 0,
                     totalHorasEstudo: 0
-                },
-                fcmToken: null
+                }
             };
             this.triggerUIRefresh();
         }
@@ -479,11 +475,6 @@ window.store = {
                 if (displayName) this.state.displayName = displayName;
                 
                 console.log("Sync: Cloud data received.");
-
-                // Auto-registrar push notifications via PWA (silencioso)
-                if (window.notificationService && window.notificationService.autoRegister) {
-                    setTimeout(() => window.notificationService.autoRegister(), 2000);
-                }
             } else {
                 console.warn(`Sync: Document [${normalizedUser}] not found. Checking for legacy casing...`);
                 

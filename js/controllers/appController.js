@@ -30,12 +30,8 @@ window.appControllers = {
 
         // Toggle Admin Nav
         const navAdmin = document.getElementById('nav-admin');
-        const mobileNavAdmin = document.getElementById('mobile-nav-admin');
         if (navAdmin) {
             navAdmin.style.display = window.store.isAdmin() ? 'flex' : 'none';
-        }
-        if (mobileNavAdmin) {
-            mobileNavAdmin.style.display = window.store.isAdmin() ? 'flex' : 'none';
         }
     },
 
@@ -90,11 +86,10 @@ window.appControllers = {
             target.classList.remove('hidden');
         }
         
-        // Update nav buttons styling (Desktop and Mobile)
-        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'metodo', 'admin', 'links', 'downloads', 'anki'];
+        // Update nav buttons styling (Desktop)
+        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'admin', 'links', 'downloads', 'anki'];
         navs.forEach(nav => {
             const btnDesktop = document.getElementById('nav-' + nav);
-            const btnMobile = document.getElementById('mobile-nav-' + nav);
             
             if (btnDesktop) {
                 if (nav === pageId) {
@@ -105,29 +100,7 @@ window.appControllers = {
                     btnDesktop.classList.add('text-gray-500');
                 }
             }
-
-            if (btnMobile) {
-                const icon = btnMobile.querySelector('i');
-                const text = btnMobile.querySelector('span');
-                if (nav === pageId) {
-                    icon?.classList.add('text-primary-600', 'ph-fill');
-                    icon?.classList.remove('text-gray-400', 'ph');
-                    text?.classList.add('text-primary-600');
-                    text?.classList.remove('text-gray-400');
-                } else {
-                    icon?.classList.remove('text-primary-600', 'ph-fill');
-                    icon?.classList.add('text-gray-400', 'ph');
-                    text?.classList.remove('text-primary-600');
-                    text?.classList.add('text-gray-400');
-                }
-            }
         });
-
-        // Close mobile more menu if open
-        const mobileMenu = document.getElementById('mobile-more-menu');
-        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
-            this.toggleMobileMoreMenu();
-        }
 
         // Trigger page-specific initializations
         if (pageId === 'dashboard') {
@@ -144,9 +117,6 @@ window.appControllers = {
         }
         if (pageId === 'materiais') {
             if (window.materialController) window.materialController.render();
-        }
-        if (pageId === 'metodo') {
-            if (window.metodoController) window.metodoController.init();
         }
         if (pageId === 'admin') {
             if (window.adminController) window.adminController.render();
@@ -209,19 +179,6 @@ window.appControllers = {
             setTimeout(() => window.location.reload(), 500);
         } catch (err) {
             window.utils.showToast("Erro ao sair: " + err.message, "error");
-        }
-    },
-
-    toggleMobileMoreMenu: function() {
-        const menu = document.getElementById('mobile-more-menu');
-        if (!menu) return;
-        const inner = menu.querySelector('div');
-        if (menu.classList.contains('hidden')) {
-            menu.classList.remove('hidden');
-            setTimeout(() => inner.classList.remove('translate-y-full'), 10);
-        } else {
-            inner.classList.add('translate-y-full');
-            setTimeout(() => menu.classList.add('hidden'), 300);
         }
     }
 };
