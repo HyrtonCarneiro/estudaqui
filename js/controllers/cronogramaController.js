@@ -25,6 +25,18 @@ window.cronogramaController = {
         this.addSelectionArea = document.getElementById('add-cronograma-selection-area');
         this.modalTitle = document.querySelector('#modal-cronograma h3');
         this.sidebarResumo = document.getElementById('sidebar-cronograma-resumo');
+
+        // Postpone modal elements
+        this.modalAdiar = document.getElementById('modal-adiar-cronograma');
+        this.modalAdiarContent = document.getElementById('modal-adiar-content');
+        this.btnAdiar = document.getElementById('btn-adiar-cronograma');
+        this.btnFecharAdiar = document.getElementById('btn-fechar-adiar');
+        this.btnCancelarAdiar = document.getElementById('btn-cancelar-adiar');
+        this.btnConfirmarAdiar = document.getElementById('btn-confirmar-adiar');
+        this.selectAdiarSemana = document.getElementById('select-adiar-semana');
+        this.inputAdiarNovaData = document.getElementById('input-adiar-nova-data');
+        this.adiarPreview = document.getElementById('adiar-preview');
+        this.adiarPreviewContent = document.getElementById('adiar-preview-content');
     },
 
     bindEvents: function() {
@@ -52,6 +64,26 @@ window.cronogramaController = {
             this.formItem.addEventListener('submit', (e) => {
                 this.handleSalvarItem(e);
             });
+        }
+
+        // Postpone modal events
+        if (this.btnAdiar) {
+            this.btnAdiar.addEventListener('click', () => this.openPostponeModal());
+        }
+        if (this.btnFecharAdiar) {
+            this.btnFecharAdiar.addEventListener('click', () => this.closePostponeModal());
+        }
+        if (this.btnCancelarAdiar) {
+            this.btnCancelarAdiar.addEventListener('click', () => this.closePostponeModal());
+        }
+        if (this.btnConfirmarAdiar) {
+            this.btnConfirmarAdiar.addEventListener('click', () => this.handlePostpone());
+        }
+        if (this.selectAdiarSemana) {
+            this.selectAdiarSemana.addEventListener('change', () => this.updatePostponePreview());
+        }
+        if (this.inputAdiarNovaData) {
+            this.inputAdiarNovaData.addEventListener('change', () => this.updatePostponePreview());
         }
     },
 
@@ -397,6 +429,160 @@ window.cronogramaController = {
             window.store.removeCronogramaItem(id);
             window.utils.showToast("Item removido", "info");
             this.renderTable();
+        }
+    },
+
+    // --- Postpone (Adiar) Functionality ---
+
+    openPostponeModal: function() {
+        var itens = window.store.getState().cronograma;
+        if (itens.length === 0) {
+            window.utils.showToast("Cronograma vazio. Nada para adiar.", "error");
+            return;
+        }
+
+        // Get unique sorted weeks
+        var semanas = [];
+        var seen = {};
+        itens.forEach(function(i) {
+            if (!seen[i.semana]) {
+                seen[i.semana] = true;
+                semanas.push(i.semana);
+            }
+        });
+        semanas.sort();
+        var firstSemanaDate = new Date(semanas[0] + 'T12:00:00');
+
+        // Populate select
+        this.selectAdiarSemana.innerHTML = '<option value="" disabled selected>Selecione a semana...</option>';
+        semanas.forEach(function(semana, idx) {
+            var semanaDate = new Date(semana + 'T12:00:00');
+            var diffTime = semanaDate - firstSemanaDate;
+            var weekNum = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
+            var opt = document.createElement('option');
+            opt.value = semana;
+            opt.textContent = 'Semana ' + weekNum + ' \u2014 ' + window.utils.formatDateBR(semana);
+            this.selectAdiarSemana.appendChild(opt);
+        }.bind(this));
+
+        // Reset
+        this.inputAdiarNovaData.value = '';
+        this.adiarPreview.classList.add('hidden');
+        this.adiarPreviewContent.innerHTML = '';
+
+        // Show modal
+        this.modalAdiar.classList.remove('hidden');
+        this.modalAdiar.classList.add('flex');
+        requestAnimationFrame(function() {
+            this.modalAdiarContent.classList.remove('scale-95', 'opacity-0');
+        }.bind(this));
+    },
+
+    closePostponeModal: function() {
+        this.modalAdiarContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(function() {
+            this.modalAdiar.classList.add('hidden');
+            this.modalAdiar.classList.remove('flex');
+        }.bind(this), 200);
+    },
+
+    updatePostponePreview: function() {
+        var selectedSemana = this.selectAdiarSemana.value;
+        var newDateVal = this.inputAdiarNovaData.value;
+
+        if (!selectedSemana || !newDateVal) {
+            this.adiarPreview.classList.add('hidden');
+            return;
+        }
+
+        var newMonday = window.utils.getWeekMonday(newDateVal);
+
+        // Calculate diff
+        var parseLocal = function(str) {
+            var parts = str.split('-').map(Number);
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        };
+        var fromDate = parseLocal(selectedSemana);
+        var toDate = parseLocal(newMonday);
+        var diffMs = toDate - fromDate;
+        var diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+            this.adiarPreview.classList.remove('hidden');
+            this.adiarPreviewContent.innerHTML = '<p class="text-amber-600 font-medium">A nova data resulta na mesma semana. Nenhuma alteração será feita.</p>';
+            return;
+        }
+
+        // Build preview
+        var itens = window.store.getState().cronograma;
+        var semanas = [];
+        var seenSemanas = {};
+        itens.forEach(function(i) {
+            if (!seenSemanas[i.semana]) {
+                seenSemanas[i.semana] = true;
+                semanas.push(i.semana);
+            }
+        });
+        semanas.sort();
+
+        var firstSemanaDate = new Date(semanas[0] + 'T12:00:00');
+        var direction = diffDays > 0 ? 'adiada' : 'antecipada';
+        var absDays = Math.abs(diffDays);
+        var html = '<p class="text-xs text-gray-500 mb-2 font-bold"><i class="ph ph-arrow-right"></i> ' + absDays + ' dia(s) — semanas serão <strong>' + direction + 's</strong>:</p>';
+        html += '<div class="space-y-1.5">';
+
+        semanas.forEach(function(semana) {
+            var semanaDate = new Date(semana + 'T12:00:00');
+            var weekDiffTime = semanaDate - firstSemanaDate;
+            var weekNum = Math.round(weekDiffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
+
+            if (semana >= selectedSemana) {
+                var newDate = parseLocal(semana);
+                newDate.setDate(newDate.getDate() + diffDays);
+                var yyyy = newDate.getFullYear();
+                var mm = String(newDate.getMonth() + 1).padStart(2, '0');
+                var dd = String(newDate.getDate()).padStart(2, '0');
+                var newWeek = window.utils.getWeekMonday(yyyy + '-' + mm + '-' + dd);
+                html += '<div class="flex items-center gap-2 text-xs">';
+                html += '<span class="font-bold text-gray-700">Sem. ' + weekNum + ':</span>';
+                html += '<span class="text-red-400 line-through">' + window.utils.formatDateBR(semana) + '</span>';
+                html += '<i class="ph ph-arrow-right text-amber-500"></i>';
+                html += '<span class="text-green-600 font-bold">' + window.utils.formatDateBR(newWeek) + '</span>';
+                html += '</div>';
+            } else {
+                html += '<div class="flex items-center gap-2 text-xs text-gray-400">';
+                html += '<span class="font-bold">Sem. ' + weekNum + ':</span>';
+                html += '<span>' + window.utils.formatDateBR(semana) + '</span>';
+                html += '<span class="text-[10px] italic">(sem alteração)</span>';
+                html += '</div>';
+            }
+        });
+
+        html += '</div>';
+        this.adiarPreviewContent.innerHTML = html;
+        this.adiarPreview.classList.remove('hidden');
+    },
+
+    handlePostpone: function() {
+        var selectedSemana = this.selectAdiarSemana.value;
+        var newDateVal = this.inputAdiarNovaData.value;
+
+        if (!selectedSemana) {
+            window.utils.showToast("Selecione a semana de referência", "error");
+            return;
+        }
+        if (!newDateVal) {
+            window.utils.showToast("Selecione a nova data", "error");
+            return;
+        }
+
+        try {
+            var count = window.store.postponeCronograma(selectedSemana, newDateVal);
+            window.utils.showToast(count + " item(ns) adiado(s) com sucesso!", "success");
+            this.closePostponeModal();
+            this.renderTable();
+        } catch(e) {
+            window.utils.showToast("Erro ao adiar: " + e.message, "error");
         }
     }
 };

@@ -159,6 +159,45 @@ window.store = {
         }
     },
 
+    postponeCronograma: function(fromSemana, newDateStr) {
+        if (!fromSemana || !newDateStr) throw new Error("Semana de origem e nova data são obrigatórios");
+
+        // Calculate the new Monday for the target date
+        const newMonday = window.utils.getWeekMonday(newDateStr);
+
+        // Parse dates to calculate diff in days
+        var parseLocal = function(str) {
+            var parts = str.split('-').map(Number);
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        };
+
+        var fromDate = parseLocal(fromSemana);
+        var toDate = parseLocal(newMonday);
+        var diffMs = toDate - fromDate;
+        var diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) throw new Error("A nova data resulta na mesma semana. Selecione uma data diferente.");
+
+        var count = 0;
+        this.state.cronograma.forEach(function(item) {
+            if (item.semana >= fromSemana) {
+                var itemDate = parseLocal(item.semana);
+                itemDate.setDate(itemDate.getDate() + diffDays);
+                // Recalculate to Monday
+                var yyyy = itemDate.getFullYear();
+                var mm = String(itemDate.getMonth() + 1).padStart(2, '0');
+                var dd = String(itemDate.getDate()).padStart(2, '0');
+                item.semana = window.utils.getWeekMonday(yyyy + '-' + mm + '-' + dd);
+                count++;
+            }
+        });
+
+        // Re-sort by semana
+        this.state.cronograma.sort(function(a, b) { return a.semana.localeCompare(b.semana); });
+        this.save();
+        return count;
+    },
+
     updateStreak: function() {
         const hoje = new Date().toISOString().split('T')[0];
         const ultima = this.state.estatisticas.ultimaDataEstudo;
