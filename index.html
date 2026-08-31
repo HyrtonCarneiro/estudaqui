@@ -83,6 +83,9 @@
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
+    <!-- JSZip (CDN for generating .ankiaddon) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <!-- App Configuration -->
     <script src="js/config/settings.js"></script>
 </head>
@@ -296,20 +299,6 @@
                         <div class="h-64">
                             <canvas id="chart-dash-editais"></canvas>
                         </div>
-                    </div>
-                </div>
-
-                <div class="bg-gray-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary-600/20 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-primary-600/30 transition-all"></div>
-                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                        <div class="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl">
-                            <i class="ph-bold ph-rocket-launch text-primary-400"></i>
-                        </div>
-                        <div class="flex-1 text-center md:text-left">
-                            <h3 class="text-2xl font-black mb-2 tracking-tight">Rumo à sua Aprovação!</h3>
-                            <p class="text-gray-400 text-sm max-w-xl">Continue mantendo sua constância nos estudos. O sucesso é a soma de pequenos esforços repetidos dia após dia.</p>
-                        </div>
-                        <button onclick="window.appControllers.navigate('cronograma')" class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-500 hover:text-white transition-all shadow-xl active:scale-95">Ver Meu Cronograma</button>
                     </div>
                 </div>
             </section>
@@ -1094,7 +1083,7 @@
                             
                             <div class="space-y-3 mb-6">
                                 <button onclick="window.downloadsController.downloadAnkiAddon()" class="w-full bg-gray-900 hover:bg-primary-600 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
-                                    <i class="ph-bold ph-download-simple"></i> Baixar Add-on Customizado (.py)
+                                    <i class="ph-bold ph-download-simple"></i> Baixar Extensão (.ankiaddon)
                                 </button>
                                 
                                 <button onclick="window.downloadsController.toggleAnkiInstructions()" class="w-full py-3 bg-white border border-gray-100 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2">
@@ -1104,18 +1093,22 @@
 
                             <!-- Área de Instruções (Hidden by default) -->
                             <div id="anki-instructions-area" class="hidden bg-primary-50/50 rounded-2xl p-6 mb-6 border border-primary-100">
-                                <h4 class="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-6 border-b border-primary-100 pb-2">Instalação & Faxina</h4>
+                                <h4 class="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-6 border-b border-primary-100 pb-2">Instalação Direta</h4>
                                 <div class="space-y-6 text-left">
                                     <div class="flex gap-3">
                                         <span class="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</span>
-                                        <p class="text-[11px] text-gray-600 font-medium">No Anki, vá em <b class="text-gray-900">Ferramentas > Extensões > Ver arquivos</b>.</p>
+                                        <p class="text-[11px] text-gray-600 font-medium">Clique no botão acima para baixar o arquivo <b class="text-gray-900">.ankiaddon</b>.</p>
                                     </div>
                                     <div class="flex gap-3">
                                         <span class="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</span>
-                                        <p class="text-[11px] text-gray-600 font-medium">Mova o arquivo <b class="text-gray-900">.py</b> baixado para dentro dessa pasta e reinicie o Anki.</p>
+                                        <p class="text-[11px] text-gray-600 font-medium">No Anki, vá em <b class="text-gray-900">Ferramentas > Extensões</b> (ou <kbd class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 font-bold text-[10px]">Ctrl+Shift+A</kbd>) e clique no botão <b class="text-gray-900">"Instalar de um arquivo..."</b>.</p>
                                     </div>
                                     <div class="flex gap-3">
                                         <span class="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</span>
+                                        <p class="text-[11px] text-gray-600 font-medium">Selecione o arquivo <b class="text-gray-900">concursos_hyrtinho.ankiaddon</b> e reinicie o Anki. <i>(O Anki cria a pasta e configura tudo automaticamente!)</i></p>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <span class="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">4</span>
                                         <div class="flex-1">
                                             <p class="text-[11px] text-gray-600 font-medium mb-3">Para o <b class="text-gray-900">Dashboard em Tempo Real</b>, use a configuração abaixo no AnkiConnect:</p>
                                             <button onclick="window.downloadsController.copyAnkiConfig()" class="w-full py-3 bg-white border border-primary-200 text-primary-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary-600 hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">

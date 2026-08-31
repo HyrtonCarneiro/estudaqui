@@ -202,8 +202,33 @@ def sync_to_cloud():
 
 gui_hooks.sync_did_finish.append(sync_to_cloud)`;
 
-        this._downloadFile('concursos_hyrtinho_sync.py', pyScript, 'text/x-python');
-        window.utils.showToast("Add-on customizado baixado!", "success");
+        if (typeof JSZip !== 'undefined') {
+            try {
+                const zip = new JSZip();
+                zip.file('__init__.py', pyScript);
+                zip.file('manifest.json', JSON.stringify({
+                    name: "Concursos Hyrtinho Sync",
+                    package: "concursos_hyrtinho"
+                }, null, 4));
+
+                const blob = await zip.generateAsync({ type: "blob" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'concursos_hyrtinho.ankiaddon';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                window.utils.showToast("Pacote .ankiaddon baixado com sucesso!", "success");
+                return;
+            } catch(err) {
+                console.error("Erro ao gerar zip:", err);
+            }
+        }
+
+        this._downloadFile('__init__.py', pyScript, 'text/x-python');
+        window.utils.showToast("Add-on baixado (__init__.py)!", "success");
     },
 
     /**
