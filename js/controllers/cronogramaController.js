@@ -366,7 +366,7 @@ window.cronogramaController = {
                 <td class="px-8 py-5">
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-1">${materia.nome}</span>
-                        <span class="${textClass} tracking-tight line-clamp-1">${conteudo.nome}</span>
+                        <span class="${textClass} tracking-tight break-words leading-snug">${conteudo.nome}</span>
                     </div>
                 </td>
                 <td class="px-8 py-5">
