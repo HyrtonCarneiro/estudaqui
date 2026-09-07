@@ -995,41 +995,55 @@
 
             <!-- Useful Links Page -->
             <section id="page-links" class="page-section hidden page-transition">
-                <div class="mb-10 flex justify-between items-end">
+                <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <h2 class="text-3xl font-black text-gray-900 tracking-tight">Links Úteis</h2>
-                        <p class="text-gray-400 text-sm font-medium">Sua central de recursos externos</p>
+                        <p class="text-gray-400 text-sm font-medium">Sua central de recursos externos organizada por grupos e categorias</p>
                     </div>
-                    <button id="btn-add-link-uteis" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-primary-100 flex items-center gap-2 active:scale-95">
-                        <i class="ph-bold ph-plus-circle"></i> Novo Link
+                    <button id="btn-add-link-uteis" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-primary-100 flex items-center gap-2 active:scale-95 self-start md:self-auto">
+                        <i class="ph-bold ph-plus-circle text-base"></i> Novo Link
                     </button>
                 </div>
 
+                <!-- Category Filter Tabs -->
+                <div id="container-links-categorias-filtro" class="flex items-center gap-2 overflow-x-auto pb-2 mb-8 custom-scrollbar">
+                    <!-- Categorias via JS -->
+                </div>
 
-
-                <div id="container-links-uteis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Category Groups & Links Container -->
+                <div id="container-links-uteis" class="space-y-10">
                     <!-- Links via JS -->
                 </div>
 
-                <!-- Modal Add Link -->
+                <!-- Modal Add/Edit Link -->
                 <div id="modal-link-uteis" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
                     <div id="modal-link-uteis-content" class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 transform transition-all scale-95 opacity-0 modal-content-scrollable custom-scrollbar">
                         <div class="flex justify-between items-start mb-8">
-                            <h3 class="text-2xl font-black text-gray-900 tracking-tight">Adicionar Link</h3>
-                            <button onclick="window.linksController.fecharModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <div>
+                                <h3 id="modal-link-uteis-title" class="text-2xl font-black text-gray-900 tracking-tight">Adicionar Link</h3>
+                                <p id="modal-link-uteis-subtitle" class="text-xs text-gray-400 font-bold mt-1">Organize seus sites e pastas de estudo</p>
+                            </div>
+                            <button type="button" onclick="window.linksController.fecharModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                                 <i class="ph ph-x text-2xl"></i>
                             </button>
                         </div>
-                        <form id="form-link-uteis" class="space-y-6">
+                        <form id="form-link-uteis" class="space-y-5">
+                            <input type="hidden" id="input-link-id">
                             <div>
-                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Título do Link</label>
-                                <input type="text" id="input-link-titulo" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm" placeholder="Ex: NotebookLM" required>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Título do Link</label>
+                                <input type="text" id="input-link-titulo" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm font-medium" placeholder="Ex: NotebookLM" required>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">URL (Endereço)</label>
-                                <input type="text" id="input-link-url" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm" placeholder="https://... ou G:\Meu Drive\..." required>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">URL (Endereço ou Pasta)</label>
+                                <input type="text" id="input-link-url" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm font-medium" placeholder="https://... ou G:\Meu Drive\..." required>
                             </div>
-                            <button type="submit" class="w-full bg-gray-900 hover:bg-primary-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg hover:shadow-primary-200 active:scale-95 uppercase tracking-widest text-xs">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Grupo / Categoria</label>
+                                <input type="text" id="input-link-categoria" list="datalist-links-categorias" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm font-medium" placeholder="Ex: Questões, Cursos, Geral...">
+                                <datalist id="datalist-links-categorias"></datalist>
+                                <div id="modal-link-categorias-sugestoes" class="flex flex-wrap gap-1.5 mt-2.5"></div>
+                            </div>
+                            <button type="submit" id="btn-salvar-link-uteis" class="w-full bg-gray-900 hover:bg-primary-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg hover:shadow-primary-200 active:scale-95 uppercase tracking-widest text-xs mt-2">
                                 SALVAR LINK
                             </button>
                         </form>

@@ -296,11 +296,24 @@ window.store = {
     },
 
     // --- Useful Links Logic ---
-    addLinkUteis: function(titulo, url) {
+    addLinkUteis: function(titulo, url, categoria = 'Geral') {
         if (!titulo || !url) throw new Error("Título e URL são obrigatórios");
         const id = 'link_' + Date.now();
-        this.state.linksUteis.push({ id, titulo, url });
+        const cat = (categoria && categoria.trim()) ? categoria.trim() : 'Geral';
+        this.state.linksUteis.push({ id, titulo: titulo.trim(), url: url.trim(), categoria: cat });
         this.save();
+    },
+
+    updateLinkUteis: function(id, data) {
+        const link = this.state.linksUteis.find(l => l.id === id);
+        if (link) {
+            if (data.titulo) link.titulo = data.titulo.trim();
+            if (data.url) link.url = data.url.trim();
+            if (data.categoria !== undefined) {
+                link.categoria = (data.categoria && data.categoria.trim()) ? data.categoria.trim() : 'Geral';
+            }
+            this.save();
+        }
     },
 
     removeLinkUteis: function(id) {
