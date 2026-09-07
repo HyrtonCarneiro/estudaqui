@@ -161,6 +161,7 @@
                         <button onclick="window.appControllers.navigate('cronograma')" id="nav-cronograma" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-calendar-check"></i> Cronograma</button>
                         <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files"></i> Materiais</button>
                         <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
+                        <button onclick="window.appControllers.navigate('pomodoro')" id="nav-pomodoro" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-timer"></i> Pomodoro</button>
                         <button onclick="window.appControllers.navigate('downloads')" id="nav-downloads" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-download-simple"></i> Downloads</button>
                         <button onclick="window.appControllers.navigate('anki')" id="nav-anki" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-cards"></i> Anki</button>
                         <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check"></i> Gerenciamento</button>
@@ -1051,6 +1052,36 @@
                 </div>
             </section>
 
+            <!-- Pomodoro Page -->
+            <section id="page-pomodoro" class="page-section hidden page-transition">
+                <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h2 class="text-3xl font-black text-gray-900 tracking-tight">Pomodoro</h2>
+                        <p class="text-gray-400 text-sm font-medium">Sessões de foco cronometradas para maximizar seu estudo</p>
+                    </div>
+                </div>
+
+                <!-- Main Timer Area (rendered by JS) -->
+                <div id="pomodoro-main-container" class="mb-12">
+                    <!-- Timer UI via JS -->
+                </div>
+
+                <!-- Stats Section -->
+                <div id="pomodoro-stats-container" class="mb-8">
+                    <!-- Stats via JS -->
+                </div>
+
+                <!-- History Section -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-black text-gray-900 tracking-tight mb-4 flex items-center gap-2">
+                        <i class="ph-bold ph-clock-counter-clockwise text-primary-600"></i> Histórico de Sessões
+                    </h3>
+                </div>
+                <div id="pomodoro-history-container">
+                    <!-- History via JS -->
+                </div>
+            </section>
+
             <!-- Downloads Page -->
             <section id="page-downloads" class="page-section hidden page-transition">
                 <div class="mb-10">
@@ -1151,27 +1182,6 @@
             </section>
         </main>
 
-        <!-- Pomodoro Floating Widget -->
-        <div id="pomodoro-widget" class="fixed bottom-6 right-6 z-50 pointer-events-none">
-            <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 transition-all duration-300 translate-y-20 opacity-0 pointer-events-none w-64" id="pomodoro-content">
-                <div class="flex items-center justify-between mb-3">
-                    <span id="pomo-label" class="text-xs font-bold uppercase tracking-wider text-primary-600">Modo Foco</span>
-                    <button id="btn-pomo-close" class="text-gray-400 hover:text-gray-600"><i class="ph ph-x"></i></button>
-                </div>
-                <div class="text-center mb-4">
-                    <p id="pomo-timer" class="text-4xl font-black text-gray-800 tabular-nums">50:00</p>
-                    <p id="pomo-materia" class="text-xs text-gray-500 truncate mt-1">Pronto para o Foco (50m)</p>
-                </div>
-                <div class="flex gap-2">
-                    <button id="btn-pomo-toggle" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white py-2 rounded-xl font-medium transition-all">Iniciar</button>
-                    <button id="btn-pomo-reset" class="px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-all"><i class="ph ph-arrow-counter-clockwise"></i></button>
-                </div>
-            </div>
-            <!-- FAB (Floating Action Button) to toggle widget -->
-            <button id="btn-pomo-fab" class="bg-primary-600 hover:bg-primary-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 pointer-events-auto ml-auto mt-4">
-                <i class="ph ph-timer text-2xl"></i>
-            </button>
-        </div>
     </div>
 
     <!-- Scripts (Zero Build Import System) -->

@@ -87,7 +87,7 @@ window.appControllers = {
         }
         
         // Update nav buttons styling (Desktop)
-        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'admin', 'links', 'downloads', 'anki'];
+        const navs = ['dashboard', 'editais', 'cadastros', 'cronograma', 'materiais', 'admin', 'links', 'pomodoro', 'downloads', 'anki'];
         navs.forEach(nav => {
             const btnDesktop = document.getElementById('nav-' + nav);
             
@@ -129,6 +129,9 @@ window.appControllers = {
         }
         if (pageId === 'anki') {
             if (window.ankiController) window.ankiController.init();
+        }
+        if (pageId === 'pomodoro') {
+            if (window.pomodoroController) window.pomodoroController.render();
         }
     },
 

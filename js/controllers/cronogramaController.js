@@ -252,6 +252,18 @@ window.cronogramaController = {
         const sortedSemanas = [...new Set(itens.map(i => i.semana))].sort();
         const firstSemanaDate = new Date(sortedSemanas[0] + 'T12:00:00');
 
+        // Calculate Pomodoro metrics per week
+        const pomodoroSessoes = window.store.getState().pomodoroSessoes || [];
+        const pomosBySemana = {};
+        pomodoroSessoes.forEach(s => {
+            const sem = s.semana;
+            if (sem) {
+                if (!pomosBySemana[sem]) pomosBySemana[sem] = { count: 0, timeSec: 0 };
+                pomosBySemana[sem].count += (s.pomodorosConcluidos || 0);
+                pomosBySemana[sem].timeSec += (s.tempoTotalFocoSeg || 0);
+            }
+        });
+
         const semanaStatus = {};
         itens.forEach(item => {
             if (!semanaStatus[item.semana]) {
@@ -270,6 +282,8 @@ window.cronogramaController = {
                 const info = semanaStatus[semana] || { total: 0, concluidos: 0, totalPaginas: 0 };
                 const totalPaginas = info.totalPaginas;
                 const isWeekCompleted = info.total > 0 && info.concluidos === info.total;
+                const pomoInfo = pomosBySemana[semana] || { count: 0, timeSec: 0 };
+                const pomoTimeStr = window.pomodoroLogic ? window.pomodoroLogic.formatDuration(pomoInfo.timeSec) : Math.round(pomoInfo.timeSec / 60) + 'min';
 
                 const diferenca = ((totalPaginas / 86) - 1) * 100;
                 const diffRounded = Math.round(diferenca);
@@ -302,7 +316,14 @@ window.cronogramaController = {
                             <span class="text-xs font-bold ${isWeekCompleted ? 'text-green-800' : 'text-gray-800'}">Semana ${weekNum}</span>
                             ${isWeekCompleted ? '<i class="ph-fill ph-check-circle text-green-500 text-sm" title="Semana Concluída"></i>' : ''}
                         </div>
-                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${totalPaginas} Pág.</span>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${totalPaginas} Pág.</span>
+                            ${pomoInfo.count > 0 ? `
+                                <span class="text-[10px] font-black text-amber-600 flex items-center gap-0.5" title="Tempo focado nesta semana">
+                                    <i class="ph-fill ph-timer text-[10px]"></i> ${pomoTimeStr}
+                                </span>
+                            ` : ''}
+                        </div>
                     </div>
                     <span class="text-[10px] font-black uppercase tracking-widest ${diferencaColor}">${diferencaText}</span>
                 `;
@@ -313,6 +334,8 @@ window.cronogramaController = {
         let lastRenderedSemana = null;
 
         itens.forEach(item => {
+            const state = window.store.getState();
+
             // 2. Detect Week Change and Render Divider
             if (item.semana !== lastRenderedSemana) {
                 const info = semanaStatus[item.semana] || { total: 0, concluidos: 0 };
@@ -321,22 +344,53 @@ window.cronogramaController = {
                 const currentSemanaDate = new Date(item.semana + 'T12:00:00');
                 const diffTime = currentSemanaDate - firstSemanaDate;
                 const weekNum = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
+
+                const pomoInfo = pomosBySemana[item.semana] || { count: 0, timeSec: 0 };
+                const pomoTimeStr = window.pomodoroLogic ? window.pomodoroLogic.formatDuration(pomoInfo.timeSec) : Math.round(pomoInfo.timeSec / 60) + 'min';
+
+                // Collect unique materia names for this week
+                const weekMaterias = [];
+                const seenMaterias = {};
+                itens.filter(i => i.semana === item.semana).forEach(i => {
+                    const m = state.materias.find(x => x.id === i.materiaId);
+                    if (m && !seenMaterias[m.id]) {
+                        seenMaterias[m.id] = true;
+                        weekMaterias.push(m.nome);
+                    }
+                });
+                const materiasJson = JSON.stringify(weekMaterias).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 
                 const divider = document.createElement('tr');
                 divider.className = 'bg-gray-50 border-y border-gray-100';
                 divider.innerHTML = `
                     <td colspan="5" class="p-4 py-3">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">
                             <span class="${isWeekCompleted ? 'bg-green-600' : 'bg-primary-600'} text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
                                 ${isWeekCompleted ? '<i class="ph-bold ph-check text-xs"></i>' : ''}
                                 Semana ${weekNum}
                             </span>
                             <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Início: ${window.utils.formatDateBR(item.semana)}</span>
+                            
+                            <!-- Badges de Estudo / Pomodoro da Semana -->
+                            ${pomoInfo.count > 0 ? `
+                                <span class="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm" title="Tempo de estudo focado e pomodoros concluídos nesta semana">
+                                    <i class="ph-fill ph-timer text-xs text-amber-600"></i> ${pomoTimeStr} · ${pomoInfo.count} pomo${pomoInfo.count !== 1 ? 's' : ''}
+                                </span>
+                            ` : `
+                                <span class="bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1" title="Nenhum pomodoro concluído nesta semana">
+                                    <i class="ph ph-timer text-xs"></i> 0 pomodoros
+                                </span>
+                            `}
+
                             ${isWeekCompleted ? `
                                 <span class="bg-green-100 text-green-700 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-green-200">
                                     <i class="ph-fill ph-check-circle text-xs"></i> Semana Concluída
                                 </span>
                             ` : ''}
+
+                            <button onclick="window.pomodoroController.startFromCronograma('${item.semana}', ${weekNum}, JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(weekMaterias))}')))" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95" title="Iniciar Pomodoro para esta semana">
+                                <i class="ph-bold ph-timer text-sm"></i> Iniciar Pomodoro
+                            </button>
                         </div>
                     </td>
                 `;
@@ -344,7 +398,6 @@ window.cronogramaController = {
                 lastRenderedSemana = item.semana;
             }
 
-            const state = window.store.getState();
             const materia = state.materias.find(m => m.id === item.materiaId) || { nome: 'Matéria' };
             const conteudo = state.conteudos.find(c => c.id === item.conteudoId) || { nome: 'Conteúdo' };
 

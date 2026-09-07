@@ -12,6 +12,17 @@ window.store = {
         simulados: [],  // { id, nome, nota, data }
         materiais: [],  // { conteudoId, links: [], notas: "" }
         linksUteis: [], // { id, titulo, url }
+        pomodoroSessoes: [], // { id, dataInicio, dataFim, categoria, semana, weekNum, materias, pomodorosAlvo, pomodorosConcluidos, duracaoFoco, duracaoPausa, tempoTotalFocoSeg, nota, pomodorosLog: [] }
+        pomodoroCategorias: ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'],
+        pomodoroConfig: {
+            duracaoFoco: 25,
+            pausaCurta: 5,
+            pausaLonga: 15,
+            pomodorosAtePausaLonga: 4,
+            autoStart: false,
+            metaDiaria: 8,
+            somAtivado: true
+        },
         estatisticas: {
             streak: 0,
             ultimaDataEstudo: null,
@@ -321,6 +332,41 @@ window.store = {
         this.save();
     },
 
+    // --- Pomodoro Logic ---
+    addPomodoroSessao: function(data) {
+        const id = 'pomo_' + Date.now();
+        const sessao = { id, ...data };
+        this.state.pomodoroSessoes.push(sessao);
+        this.save();
+        return sessao;
+    },
+
+    removePomodoroSessao: function(id) {
+        this.state.pomodoroSessoes = this.state.pomodoroSessoes.filter(s => s.id !== id);
+        this.save();
+    },
+
+    updatePomodoroConfig: function(config) {
+        this.state.pomodoroConfig = { ...this.state.pomodoroConfig, ...config };
+        this.save();
+    },
+
+    addPomodoroCategoria: function(nome) {
+        if (!nome || !nome.trim()) return;
+        const categoria = nome.trim();
+        if (!this.state.pomodoroCategorias) this.state.pomodoroCategorias = [];
+        if (!this.state.pomodoroCategorias.includes(categoria)) {
+            this.state.pomodoroCategorias.push(categoria);
+            this.save();
+        }
+    },
+
+    removePomodoroCategoria: function(nome) {
+        if (!this.state.pomodoroCategorias) return;
+        this.state.pomodoroCategorias = this.state.pomodoroCategorias.filter(c => c !== nome);
+        this.save();
+    },
+
     // --- Persistence (Pure Firestore) ---
     cleanData: function(obj) {
         if (Array.isArray(obj)) return obj.map(v => this.cleanData(v));
@@ -410,6 +456,17 @@ window.store = {
                 simulados: [],
                 materiais: [],
                 linksUteis: [],
+                pomodoroSessoes: [],
+                pomodoroCategorias: ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'],
+                pomodoroConfig: {
+                    duracaoFoco: 25,
+                    pausaCurta: 5,
+                    pausaLonga: 15,
+                    pomodorosAtePausaLonga: 4,
+                    autoStart: false,
+                    metaDiaria: 8,
+                    somAtivado: true
+                },
                 estatisticas: {
                     streak: 0,
                     ultimaDataEstudo: null,
@@ -638,6 +695,7 @@ window.store = {
                 if (window.gamificationController) try { window.gamificationController.render(); } catch(e){}
                 if (window.adminController && this.isAdmin()) try { window.adminController.render(); } catch(e){}
                 if (window.linksController) try { window.linksController.render(); } catch(e){}
+                if (window.pomodoroController && window.pomodoroController.render) try { window.pomodoroController.render(); } catch(e){}
             }
         }
     }
