@@ -22,6 +22,7 @@ window.pomodoroLogic = {
         pausaCurta: 5,
         pausaLonga: 15,
         pomodorosAtePausaLonga: 4,
+        usarPausaLonga: true,
         autoStart: false,
         metaDiaria: 8,
         somAtivado: true
@@ -120,7 +121,8 @@ window.pomodoroLogic = {
             }
 
             // Determine break type
-            if (this.pomodorosCompleted % this.config.pomodorosAtePausaLonga === 0) {
+            const usarLonga = this.config.usarPausaLonga !== false;
+            if (usarLonga && (this.pomodorosCompleted % this.config.pomodorosAtePausaLonga === 0)) {
                 this.mode = 'longBreak';
                 this.totalTime = this.config.pausaLonga * 60;
             } else {
@@ -134,6 +136,7 @@ window.pomodoroLogic = {
         this.isActive = true;
         this._notifyStateChange();
         this._startInterval();
+        this._persistActiveSession();
     },
 
     _startInterval: function() {
@@ -145,6 +148,11 @@ window.pomodoroLogic = {
             // Track focus seconds
             if (this.mode === 'focus') {
                 this.totalFocusSeconds++;
+            }
+
+            // Periodically persist active state
+            if (this.timeLeft % 5 === 0) {
+                this._persistActiveSession();
             }
 
             // Update browser title
@@ -205,7 +213,8 @@ window.pomodoroLogic = {
             }
 
             // Determine break type
-            if (this.pomodorosCompleted % this.config.pomodorosAtePausaLonga === 0) {
+            const usarLonga = this.config.usarPausaLonga !== false;
+            if (usarLonga && (this.pomodorosCompleted % this.config.pomodorosAtePausaLonga === 0)) {
                 this.mode = 'longBreak';
                 this.totalTime = this.config.pausaLonga * 60;
             } else {
@@ -235,6 +244,7 @@ window.pomodoroLogic = {
 
         this._updateTitle();
         this._notifyStateChange();
+        this._persistActiveSession();
     },
 
     pause: function() {
@@ -246,6 +256,7 @@ window.pomodoroLogic = {
         this.isPaused = true;
         this._updateTitle();
         this._notifyStateChange();
+        this._persistActiveSession();
     },
 
     resume: function() {
@@ -254,6 +265,7 @@ window.pomodoroLogic = {
         this.isActive = true;
         this._startInterval();
         this._notifyStateChange();
+        this._persistActiveSession();
     },
 
     stop: function() {
@@ -264,6 +276,7 @@ window.pomodoroLogic = {
         this.isActive = false;
         this.isPaused = false;
         this._restoreTitle();
+        this._clearPersistedSession();
     },
 
     skip: function() {
@@ -284,12 +297,14 @@ window.pomodoroLogic = {
             this.totalTime = this.config.duracaoFoco * 60;
             this.timeLeft = this.totalTime;
             this._notifyStateChange();
+            this._persistActiveSession();
         }
     },
 
     addMorePomodoros: function(count) {
         this.totalPomodoros += count;
         this._notifyStateChange();
+        this._persistActiveSession();
     },
 
     reset: function() {
@@ -303,6 +318,7 @@ window.pomodoroLogic = {
         this.context = { categoria: 'Livre', semana: null, weekNum: null, materia: '', materias: [], conteudos: [] };
         this._restoreTitle();
         this._notifyStateChange();
+        this._clearPersistedSession();
     },
 
     // Save completed session to store
@@ -445,5 +461,132 @@ window.pomodoroLogic = {
         } catch (e) {
             console.warn('Pomodoro alarm unavailable:', e);
         }
+    },
+
+    // --- SESSION PERSISTENCE (LocalStorage) ---
+    _persistActiveSession: function() {
+        try {
+            if (this.mode === 'idle' && this.pomodorosCompleted === 0 && !this.isActive && !this.isPaused) {
+                this._clearPersistedSession();
+                return;
+            }
+            const state = {
+                mode: this.mode,
+                totalTime: this.totalTime,
+                timeLeft: this.timeLeft,
+                targetEndTime: Date.now() + (this.timeLeft * 1000),
+                isActive: this.isActive,
+                isPaused: this.isPaused,
+                currentPomodoro: this.currentPomodoro,
+                totalPomodoros: this.totalPomodoros,
+                pomodorosCompleted: this.pomodorosCompleted,
+                totalFocusSeconds: this.totalFocusSeconds,
+                sessionStartTime: this.sessionStartTime,
+                context: this.context,
+                config: this.config,
+                currentSessionLogs: this.currentSessionLogs,
+                savedAt: Date.now()
+            };
+            localStorage.setItem('pomo_active_state', JSON.stringify(state));
+        } catch (e) {
+            console.warn('Pomodoro state persistence error:', e);
+        }
+    },
+
+    _clearPersistedSession: function() {
+        try {
+            localStorage.removeItem('pomo_active_state');
+        } catch (e) {}
+    },
+
+    restoreActiveSession: function() {
+        try {
+            const raw = localStorage.getItem('pomo_active_state');
+            if (!raw) return false;
+            const saved = JSON.parse(raw);
+            if (!saved || !saved.mode || saved.mode === 'idle') {
+                this._clearPersistedSession();
+                return false;
+            }
+
+            this.mode = saved.mode;
+            this.totalTime = saved.totalTime || 25 * 60;
+            this.currentPomodoro = saved.currentPomodoro || 1;
+            this.totalPomodoros = saved.totalPomodoros || 4;
+            this.pomodorosCompleted = saved.pomodorosCompleted || 0;
+            this.totalFocusSeconds = saved.totalFocusSeconds || 0;
+            this.sessionStartTime = saved.sessionStartTime || new Date().toISOString();
+            this.context = saved.context || { categoria: 'Livre', semana: null, weekNum: null, materia: '', materias: [], conteudos: [] };
+            this.currentSessionLogs = saved.currentSessionLogs || [];
+            if (saved.config) this.config = { ...this.config, ...saved.config };
+
+            if (saved.isPaused) {
+                this.timeLeft = saved.timeLeft;
+                this.isActive = false;
+                this.isPaused = true;
+                return true;
+            }
+
+            if (saved.isActive) {
+                const now = Date.now();
+                const remaining = Math.round((saved.targetEndTime - now) / 1000);
+                if (remaining > 0) {
+                    this.timeLeft = remaining;
+                    this.isActive = true;
+                    this.isPaused = false;
+                    this._startInterval();
+                    return true;
+                } else {
+                    // Time elapsed while browser was closed!
+                    if (saved.mode === 'focus') {
+                        this.pomodorosCompleted++;
+                        this.totalFocusSeconds += (this.config.duracaoFoco * 60);
+                        const logItem = {
+                            id: 'pomo_item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            completedAt: new Date(saved.targetEndTime).toISOString(),
+                            duracaoMin: this.config.duracaoFoco,
+                            duracaoSeg: this.config.duracaoFoco * 60,
+                            categoria: this.context.categoria || 'Livre',
+                            semana: this.context.semana || null,
+                            weekNum: this.context.weekNum || null,
+                            materia: this.context.materia || 'Geral',
+                            materias: this.context.materias || []
+                        };
+                        this.currentSessionLogs.push(logItem);
+                    }
+
+                    if (this.pomodorosCompleted >= this.totalPomodoros) {
+                        this.mode = 'idle';
+                        this.isActive = false;
+                        this.isPaused = false;
+                        this._clearPersistedSession();
+                        return true;
+                    }
+
+                    // Prepare for break or next cycle
+                    const usarLonga = this.config.usarPausaLonga !== false;
+                    const isLonga = usarLonga && (this.pomodorosCompleted % this.config.pomodorosAtePausaLonga === 0);
+                    this.mode = isLonga ? 'longBreak' : 'shortBreak';
+                    this.totalTime = (isLonga ? this.config.pausaLonga : this.config.pausaCurta) * 60;
+                    this.timeLeft = this.totalTime;
+                    this.isActive = false;
+                    this.isPaused = true; // Wait for user
+                    this._persistActiveSession();
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (e) {
+            console.warn('Pomodoro restore error:', e);
+            return false;
+        }
     }
 };
+
+// Global unload safety net
+window.addEventListener('beforeunload', () => {
+    if (window.pomodoroLogic && (window.pomodoroLogic.isActive || window.pomodoroLogic.isPaused)) {
+        window.pomodoroLogic._persistActiveSession();
+    }
+});

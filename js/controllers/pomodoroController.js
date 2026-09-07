@@ -11,6 +11,17 @@ window.pomodoroController = {
         if (window.pomodoroLogic) {
             window.pomodoroLogic.loadConfig();
             window.pomodoroLogic.requestNotificationPermission();
+
+            // Restore any in-progress session across reloads / closures
+            const restored = window.pomodoroLogic.restoreActiveSession();
+            if (restored) {
+                this.view = 'active';
+                const logic = window.pomodoroLogic;
+                logic.onTick = (time, perc, raw) => this._onTick(time, perc, raw);
+                logic.onPhaseComplete = (mode) => this._onPhaseComplete(mode);
+                logic.onSessionComplete = () => this._onSessionComplete();
+                logic.onStateChange = () => this._onStateChange();
+            }
         }
     },
 
@@ -54,7 +65,7 @@ window.pomodoroController = {
     // --- SETUP VIEW ---
     renderSetup: function() {
         if (!this.container) return;
-        const config = window.pomodoroLogic ? window.pomodoroLogic.config : { duracaoFoco: 25, pausaCurta: 5, pausaLonga: 15, pomodorosAtePausaLonga: 4, autoStart: false, metaDiaria: 8, somAtivado: true };
+        const config = window.pomodoroLogic ? window.pomodoroLogic.config : { duracaoFoco: 25, pausaCurta: 5, pausaLonga: 15, pomodorosAtePausaLonga: 4, usarPausaLonga: true, autoStart: false, metaDiaria: 8, somAtivado: true };
         const ctx = window.pomodoroLogic ? window.pomodoroLogic.context : {};
         const state = window.store ? window.store.getState() : { materias: [], cronograma: [], pomodoroCategorias: [] };
         
@@ -86,8 +97,8 @@ window.pomodoroController = {
         // Materias list
         const materias = state.materias || [];
         const currentMateria = ctx.materia || (ctx.materias && ctx.materias.length === 1 ? ctx.materias[0] : '');
-
         const isLinkedToCronograma = !!ctx.semana;
+        const usarLonga = config.usarPausaLonga !== false;
 
         this.container.innerHTML = `
             <div class="max-w-3xl mx-auto animate-fade-in">
@@ -121,7 +132,7 @@ window.pomodoroController = {
                                 </span>
                                 Planejar Sessão de Estudo
                             </h3>
-                            <p class="text-xs text-gray-400 font-medium mt-1">Configure o assunto, a categoria e a cadência dos seus ciclos</p>
+                            <p class="text-xs text-gray-400 font-medium mt-1">Digite o tempo desejado ou use os botões para ajustar os ciclos</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="window.pomodoroController.toggleSound()" class="px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all active:scale-95 flex items-center gap-1.5 ${config.somAtivado !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}" title="Alerta sonoro">
@@ -184,60 +195,85 @@ window.pomodoroController = {
                         </div>
                     </div>
 
-                    <!-- Timers & Cycles Controls -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center">
+                    <!-- Fluid Timers & Cycles Controls (With Direct Number Inputs) -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <!-- Total Pomodoros -->
+                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center transition-all">
                             <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pomodoros</label>
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="window.pomodoroController.adjustConfig('totalPomodoros', -1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
-                                <span class="text-xl font-black text-gray-800 w-8 text-center tabular-nums">${config.pomodorosAtePausaLonga}</span>
-                                <button onclick="window.pomodoroController.adjustConfig('totalPomodoros', 1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('totalPomodoros', -1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
+                                <input id="cfg-input-pomos" type="number" min="1" max="24" value="${config.pomodorosAtePausaLonga}" oninput="window.pomodoroController.onInputConfig('totalPomodoros', this.value)" class="text-xl font-black text-gray-800 w-12 text-center bg-transparent border-b-2 border-transparent focus:border-primary-500 outline-none tabular-nums" title="Digite a quantidade de pomodoros">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('totalPomodoros', 1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
                             </div>
                             <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Ciclos de foco</span>
                         </div>
 
-                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center">
+                        <!-- Foco (min) -->
+                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center transition-all">
                             <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Foco (min)</label>
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="window.pomodoroController.adjustConfig('duracaoFoco', -5)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
-                                <span class="text-xl font-black text-primary-600 w-10 text-center tabular-nums">${config.duracaoFoco}</span>
-                                <button onclick="window.pomodoroController.adjustConfig('duracaoFoco', 5)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('duracaoFoco', -5)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
+                                <input id="cfg-input-foco" type="number" min="1" max="180" value="${config.duracaoFoco}" oninput="window.pomodoroController.onInputConfig('duracaoFoco', this.value)" class="text-xl font-black text-primary-600 w-16 text-center bg-transparent border-b-2 border-transparent focus:border-primary-500 outline-none tabular-nums" title="Digite os minutos de foco">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('duracaoFoco', 5)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
                             </div>
                             <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Tempo de foco</span>
                         </div>
 
-                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center">
+                        <!-- Pausa Curta (min) -->
+                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center transition-all">
                             <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pausa Curta</label>
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="window.pomodoroController.adjustConfig('pausaCurta', -1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
-                                <span class="text-xl font-black text-amber-600 w-8 text-center tabular-nums">${config.pausaCurta}</span>
-                                <button onclick="window.pomodoroController.adjustConfig('pausaCurta', 1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('pausaCurta', -1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
+                                <input id="cfg-input-curta" type="number" min="1" max="60" value="${config.pausaCurta}" oninput="window.pomodoroController.onInputConfig('pausaCurta', this.value)" class="text-xl font-black text-amber-600 w-14 text-center bg-transparent border-b-2 border-transparent focus:border-primary-500 outline-none tabular-nums" title="Digite os minutos de pausa curta">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('pausaCurta', 1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
                             </div>
-                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Minutos</span>
+                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Entre cada pomo</span>
                         </div>
 
-                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center">
-                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pausa Longa</label>
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="window.pomodoroController.adjustConfig('pausaLonga', -1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
-                                <span class="text-xl font-black text-emerald-600 w-8 text-center tabular-nums">${config.pausaLonga}</span>
-                                <button onclick="window.pomodoroController.adjustConfig('pausaLonga', 1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
+                        <!-- Pausa Longa (min) -->
+                        <div id="cfg-card-pausa-longa" class="bg-gray-50/70 p-4 rounded-2xl border border-gray-100 text-center transition-all ${!usarLonga ? 'opacity-50 grayscale' : ''}">
+                            <div class="flex items-center justify-between mb-1 px-1">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pausa Longa</label>
+                                <span id="cfg-badge-longa" class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${usarLonga ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}">
+                                    ${usarLonga ? 'Ativa' : 'Off'}
+                                </span>
                             </div>
-                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">A cada ${config.pomodorosAtePausaLonga} pomos</span>
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('pausaLonga', -1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">−</button>
+                                <input id="cfg-input-longa" type="number" min="1" max="120" value="${config.pausaLonga}" oninput="window.pomodoroController.onInputConfig('pausaLonga', this.value)" class="text-xl font-black text-emerald-600 w-14 text-center bg-transparent border-b-2 border-transparent focus:border-primary-500 outline-none tabular-nums" title="Digite os minutos de pausa longa">
+                                <button type="button" onclick="window.pomodoroController.stepConfig('pausaLonga', 1)" class="w-8 h-8 rounded-xl bg-white shadow-sm hover:bg-gray-100 text-gray-700 flex items-center justify-center font-black transition-all active:scale-90">+</button>
+                            </div>
+                            <span id="cfg-label-longa-freq" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">A cada ${config.pomodorosAtePausaLonga} pomos</span>
+                        </div>
+                    </div>
+
+                    <!-- Explanatory Box: Como Funcionam as Pausas & Toggle da Pausa Longa -->
+                    <div class="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-5 mb-8 text-left transition-all">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-amber-200/60">
+                            <span class="text-xs font-black text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="ph-bold ph-info text-amber-600 text-base"></i> Entenda como funcionam os descansos
+                            </span>
+                            <button type="button" onclick="window.pomodoroController.togglePausaLonga()" id="btn-toggle-pausa-longa" class="text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border transition-all active:scale-95 flex items-center gap-1.5 self-start sm:self-auto ${usarLonga ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-200 hover:bg-gray-300 text-gray-700 border-gray-300'}">
+                                <i class="ph-bold ${usarLonga ? 'ph-check-circle' : 'ph-x-circle'}"></i>
+                                Pausa Longa: ${usarLonga ? 'Ativada' : 'Desativada'}
+                            </button>
+                        </div>
+                        <div id="pomo-pausa-explainer-text" class="text-xs text-amber-900 leading-relaxed font-medium space-y-1">
+                            ${this._getPausaExplainerHtml(config)}
                         </div>
                     </div>
 
                     <!-- Presets & Toggles -->
                     <div class="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-gray-100 mb-8">
                         <div class="flex flex-wrap items-center gap-2">
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">Presets:</span>
-                            <button onclick="window.pomodoroController.applyPreset(25, 5, 15, 4)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Clássico 25/5</button>
-                            <button onclick="window.pomodoroController.applyPreset(50, 10, 20, 4)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Maratona 50/10</button>
-                            <button onclick="window.pomodoroController.applyPreset(15, 3, 10, 4)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Rápido 15/3</button>
-                            <button onclick="window.pomodoroController.applyPreset(45, 10, 25, 3)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Imersão 45/10</button>
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">Presets Rápidos:</span>
+                            <button type="button" onclick="window.pomodoroController.applyPreset(25, 5, 15, 4)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Clássico 25/5</button>
+                            <button type="button" onclick="window.pomodoroController.applyPreset(50, 10, 20, 4)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Maratona 50/10</button>
+                            <button type="button" onclick="window.pomodoroController.applyPreset(15, 3, 10, 4)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Rápido 15/3</button>
+                            <button type="button" onclick="window.pomodoroController.applyPreset(45, 10, 25, 3)" class="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 transition-all active:scale-95">Imersão 45/10</button>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="window.pomodoroController.toggleAutoStart()" class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 ${config.autoStart ? 'bg-primary-600 text-white shadow-md shadow-primary-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
+                            <button type="button" onclick="window.pomodoroController.toggleAutoStart()" id="btn-auto-start" class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 ${config.autoStart ? 'bg-primary-600 text-white shadow-md shadow-primary-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
                                 <i class="ph-bold ${config.autoStart ? 'ph-check-circle' : 'ph-circle'}"></i>
                                 Auto-iniciar Ciclos: ${config.autoStart ? 'Ligado' : 'Desligado'}
                             </button>
@@ -245,7 +281,7 @@ window.pomodoroController = {
                     </div>
 
                     <!-- Start Button -->
-                    <button onclick="window.pomodoroController.startSession()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-primary-200 active:scale-[0.98] uppercase tracking-widest text-sm flex items-center justify-center gap-3">
+                    <button type="button" onclick="window.pomodoroController.startSession()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-primary-200 active:scale-[0.98] uppercase tracking-widest text-sm flex items-center justify-center gap-3">
                         <i class="ph-bold ph-play-circle text-2xl"></i> INICIAR SESSÃO DE FOCO
                     </button>
                 </div>
@@ -300,10 +336,10 @@ window.pomodoroController = {
                     </div>
 
                     <div class="flex items-center gap-2 ml-auto">
-                        <button onclick="window.pomodoroController.toggleSound()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="${logic.config.somAtivado !== false ? 'Silenciar som' : 'Ativar som'}">
+                        <button type="button" onclick="window.pomodoroController.toggleSound()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="${logic.config.somAtivado !== false ? 'Silenciar som' : 'Ativar som'}">
                             <i class="ph-bold ${logic.config.somAtivado !== false ? 'ph-speaker-high text-emerald-600' : 'ph-speaker-slash text-gray-400'} text-lg"></i>
                         </button>
-                        <button onclick="window.pomodoroController.toggleFullscreen()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="Modo Tela Cheia">
+                        <button type="button" onclick="window.pomodoroController.toggleFullscreen()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="Modo Tela Cheia">
                             <i class="ph-bold ph-corners-out text-lg"></i>
                         </button>
                     </div>
@@ -351,24 +387,24 @@ window.pomodoroController = {
                 <!-- Action Controls -->
                 <div class="flex items-center justify-center gap-3 mb-8 flex-wrap">
                     ${logic.isPaused || !logic.isActive ? `
-                        <button onclick="window.pomodoroController.resumeTimer()" class="bg-primary-600 hover:bg-primary-700 text-white font-black px-8 py-4 rounded-2xl transition-all shadow-lg shadow-primary-200 active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2">
+                        <button type="button" onclick="window.pomodoroController.resumeTimer()" class="bg-primary-600 hover:bg-primary-700 text-white font-black px-8 py-4 rounded-2xl transition-all shadow-lg shadow-primary-200 active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2">
                             <i class="ph-bold ph-play text-lg"></i> Continuar
                         </button>
                     ` : `
-                        <button onclick="window.pomodoroController.pauseTimer()" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-8 py-4 rounded-2xl transition-all shadow-lg shadow-amber-200 active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2">
+                        <button type="button" onclick="window.pomodoroController.pauseTimer()" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-8 py-4 rounded-2xl transition-all shadow-lg shadow-amber-200 active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2">
                             <i class="ph-bold ph-pause text-lg"></i> Pausar
                         </button>
                     `}
 
-                    <button onclick="window.pomodoroController.skipPhase()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-black px-6 py-4 rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" title="Pular fase atual">
+                    <button type="button" onclick="window.pomodoroController.skipPhase()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-black px-6 py-4 rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" title="Pular fase atual">
                         <i class="ph-bold ph-skip-forward text-lg"></i> Pular
                     </button>
 
-                    <button onclick="window.pomodoroController.addMore()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-black px-6 py-4 rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" title="Adicionar mais 1 pomodoro ao ciclo">
+                    <button type="button" onclick="window.pomodoroController.addMore()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-black px-6 py-4 rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" title="Adicionar mais 1 pomodoro ao ciclo">
                         <i class="ph-bold ph-plus-circle text-lg"></i> +1 Pomo
                     </button>
 
-                    <button onclick="window.pomodoroController.cancelSession()" class="bg-red-50 hover:bg-red-100 text-red-600 font-black px-6 py-4 rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" title="Finalizar e salvar agora">
+                    <button type="button" onclick="window.pomodoroController.cancelSession()" class="bg-red-50 hover:bg-red-100 text-red-600 font-black px-6 py-4 rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" title="Finalizar e salvar agora">
                         <i class="ph-bold ph-stop text-lg"></i> Encerrar
                     </button>
                 </div>
@@ -466,10 +502,10 @@ window.pomodoroController = {
 
                 <!-- Actions -->
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button onclick="window.pomodoroController.saveAndReset()" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-primary-200 active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                    <button type="button" onclick="window.pomodoroController.saveAndReset()" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-primary-200 active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                         <i class="ph-bold ph-floppy-disk text-lg"></i> Salvar e Voltar ao Início
                     </button>
-                    <button onclick="window.pomodoroController.addMoreAndContinue()" class="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                    <button type="button" onclick="window.pomodoroController.addMoreAndContinue()" class="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                         <i class="ph-bold ph-plus-circle text-lg"></i> Continuar Estudando (+4)
                     </button>
                 </div>
@@ -574,10 +610,10 @@ window.pomodoroController = {
 
                     <!-- Period Buttons -->
                     <div class="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl self-start sm:self-auto">
-                        <button onclick="window.pomodoroController.setStatsPeriod('hoje')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'hoje' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Hoje</button>
-                        <button onclick="window.pomodoroController.setStatsPeriod('semana')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'semana' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Semana</button>
-                        <button onclick="window.pomodoroController.setStatsPeriod('mes')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'mes' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Mês</button>
-                        <button onclick="window.pomodoroController.setStatsPeriod('geral')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'geral' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Geral</button>
+                        <button type="button" onclick="window.pomodoroController.setStatsPeriod('hoje')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'hoje' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Hoje</button>
+                        <button type="button" onclick="window.pomodoroController.setStatsPeriod('semana')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'semana' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Semana</button>
+                        <button type="button" onclick="window.pomodoroController.setStatsPeriod('mes')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'mes' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Mês</button>
+                        <button type="button" onclick="window.pomodoroController.setStatsPeriod('geral')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'geral' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Geral</button>
                     </div>
                 </div>
 
@@ -884,11 +920,15 @@ window.pomodoroController = {
 
                                         <p class="text-xs text-gray-400 font-medium">${dateStr}</p>
                                         
-                                        ${s.nota ? `
-                                            <div class="mt-2 text-xs text-gray-600 bg-gray-50 p-2.5 rounded-xl border border-gray-100 italic">
-                                                📝 ${this._escapeHtml(s.nota)}
+                                        <!-- Note container with edit option -->
+                                        <div class="mt-2.5 flex items-start gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100 group/note">
+                                            <div class="flex-1 min-w-0 text-xs text-gray-700">
+                                                ${s.nota ? `📝 <span id="note-text-${s.id}">${this._escapeHtml(s.nota)}</span>` : '<span class="text-gray-400 italic">Sem anotação. Clique no lápis para adicionar...</span>'}
                                             </div>
-                                        ` : ''}
+                                            <button type="button" onclick="window.pomodoroController.editSessionNote('${s.id}')" class="text-gray-400 hover:text-primary-600 transition-colors p-1 rounded-lg hover:bg-white active:scale-95" title="Editar anotação">
+                                                <i class="ph-bold ph-pencil-simple text-sm"></i>
+                                            </button>
+                                        </div>
 
                                         <!-- Individual pomodoro pills if available -->
                                         ${logs.length > 0 ? `
@@ -903,9 +943,14 @@ window.pomodoroController = {
                                     </div>
                                 </div>
 
-                                <button onclick="window.pomodoroController.removeSession('${s.id}')" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 flex items-center justify-center opacity-0 group-hover:opacity-100" title="Remover registro">
-                                    <i class="ph-bold ph-trash text-sm"></i>
-                                </button>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" onclick="window.pomodoroController.editSessionNote('${s.id}')" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 hover:bg-primary-50 hover:text-primary-600 transition-all active:scale-95 flex items-center justify-center opacity-0 group-hover:opacity-100" title="Editar anotação">
+                                        <i class="ph-bold ph-pencil-simple text-sm"></i>
+                                    </button>
+                                    <button type="button" onclick="window.pomodoroController.removeSession('${s.id}')" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 flex items-center justify-center opacity-0 group-hover:opacity-100" title="Excluir sessão">
+                                        <i class="ph-bold ph-trash text-sm"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -919,7 +964,120 @@ window.pomodoroController = {
         this.historyContainer.innerHTML = html;
     },
 
-    // --- ACTIONS & CONFIG ---
+    // --- ACTIONS & CONFIG (FLUID WITHOUT FLICKER) ---
+    stepConfig: function(field, delta) {
+        const config = window.pomodoroLogic.config;
+        const limits = {
+            totalPomodoros: [1, 24],
+            duracaoFoco: [1, 180],
+            pausaCurta: [1, 60],
+            pausaLonga: [1, 120]
+        };
+
+        const [min, max] = limits[field] || [1, 120];
+        const targetProp = field === 'totalPomodoros' ? 'pomodorosAtePausaLonga' : field;
+        const current = config[targetProp] || 25;
+        const next = Math.max(min, Math.min(max, current + delta));
+        config[targetProp] = next;
+
+        window.pomodoroLogic.saveConfig();
+
+        // Update corresponding input value directly without page reload/lag
+        const inputMap = {
+            totalPomodoros: 'cfg-input-pomos',
+            duracaoFoco: 'cfg-input-foco',
+            pausaCurta: 'cfg-input-curta',
+            pausaLonga: 'cfg-input-longa'
+        };
+        const el = document.getElementById(inputMap[field]);
+        if (el) el.value = next;
+
+        // Update frequency label if pomos changed
+        if (field === 'totalPomodoros') {
+            const freqLabel = document.getElementById('cfg-label-longa-freq');
+            if (freqLabel) freqLabel.textContent = `A cada ${next} pomos`;
+        }
+
+        this._updatePausaExplainer();
+    },
+
+    onInputConfig: function(field, rawVal) {
+        const val = parseInt(rawVal, 10);
+        if (isNaN(val) || val <= 0) return;
+
+        const config = window.pomodoroLogic.config;
+        const targetProp = field === 'totalPomodoros' ? 'pomodorosAtePausaLonga' : field;
+        config[targetProp] = val;
+        window.pomodoroLogic.saveConfig();
+
+        if (field === 'totalPomodoros') {
+            const freqLabel = document.getElementById('cfg-label-longa-freq');
+            if (freqLabel) freqLabel.textContent = `A cada ${val} pomos`;
+        }
+
+        this._updatePausaExplainer();
+    },
+
+    togglePausaLonga: function() {
+        const config = window.pomodoroLogic.config;
+        config.usarPausaLonga = config.usarPausaLonga === false ? true : false;
+        window.pomodoroLogic.saveConfig();
+
+        const usarLonga = config.usarPausaLonga !== false;
+
+        // Fluid DOM update without full page re-render
+        const cardLonga = document.getElementById('cfg-card-pausa-longa');
+        if (cardLonga) {
+            if (usarLonga) {
+                cardLonga.classList.remove('opacity-50', 'grayscale');
+            } else {
+                cardLonga.classList.add('opacity-50', 'grayscale');
+            }
+        }
+
+        const badgeLonga = document.getElementById('cfg-badge-longa');
+        if (badgeLonga) {
+            badgeLonga.className = `text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${usarLonga ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}`;
+            badgeLonga.textContent = usarLonga ? 'Ativa' : 'Off';
+        }
+
+        const btnToggle = document.getElementById('btn-toggle-pausa-longa');
+        if (btnToggle) {
+            btnToggle.className = `text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border transition-all active:scale-95 flex items-center gap-1.5 self-start sm:self-auto ${usarLonga ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-200 hover:bg-gray-300 text-gray-700 border-gray-300'}`;
+            btnToggle.innerHTML = `<i class="ph-bold ${usarLonga ? 'ph-check-circle' : 'ph-x-circle'}"></i> Pausa Longa: ${usarLonga ? 'Ativada' : 'Desativada'}`;
+        }
+
+        this._updatePausaExplainer();
+        window.utils.showToast(usarLonga ? 'Pausa longa ativada!' : 'Pausa longa desativada (apenas pausas curtas)', 'info');
+    },
+
+    _getPausaExplainerHtml: function(config) {
+        const usarLonga = config.usarPausaLonga !== false;
+        if (usarLonga) {
+            return `
+                <p>• <b>Pausa Curta (${config.pausaCurta} min):</b> É o descanso padrão que ocorre após cada pomodoro de foco para você beber água e respirar.</p>
+                <p>• <b>Pausa Longa (${config.pausaLonga} min):</b> É um descanso estendido que ocorre <b>apenas a cada ${config.pomodorosAtePausaLonga} pomodoros concluídos</b> para recarregar a energia mental.</p>
+                <div class="mt-2 text-[11px] font-bold text-amber-800 bg-amber-100/60 p-2 rounded-xl flex items-center gap-1.5">
+                    <span>💡 <b>Seu ciclo:</b> Foco (${config.duracaoFoco}m) ➔ Pausa Curta (${config.pausaCurta}m) ... no ${config.pomodorosAtePausaLonga}º pomodoro ➔ <b>Pausa Longa (${config.pausaLonga}m)</b>.</span>
+                </div>
+            `;
+        } else {
+            return `
+                <p>• <b>Pausa Longa Desativada:</b> Todos os seus intervalos de descanso terão a duração fixa da <b>Pausa Curta (${config.pausaCurta} min)</b>, sem descanso estendido.</p>
+                <div class="mt-2 text-[11px] font-bold text-gray-700 bg-gray-100 p-2 rounded-xl flex items-center gap-1.5">
+                    <span>💡 <b>Seu ciclo contínuo:</b> Foco (${config.duracaoFoco}m) ➔ Pausa Curta (${config.pausaCurta}m) ➔ Foco (${config.duracaoFoco}m)...</span>
+                </div>
+            `;
+        }
+    },
+
+    _updatePausaExplainer: function() {
+        const explainer = document.getElementById('pomo-pausa-explainer-text');
+        if (explainer && window.pomodoroLogic) {
+            explainer.innerHTML = this._getPausaExplainerHtml(window.pomodoroLogic.config);
+        }
+    },
+
     setStatsPeriod: function(period) {
         this.statsPeriod = period;
         this.renderStats();
@@ -974,25 +1132,15 @@ window.pomodoroController = {
         }
     },
 
-    adjustConfig: function(field, delta) {
-        const config = window.pomodoroLogic.config;
-        const mins = { duracaoFoco: [5, 120], pausaCurta: [1, 30], pausaLonga: [5, 60], metaDiaria: [1, 30] };
-
-        if (field === 'totalPomodoros') {
-            config.pomodorosAtePausaLonga = Math.max(1, Math.min(12, config.pomodorosAtePausaLonga + delta));
-        } else if (mins[field]) {
-            const [min, max] = mins[field];
-            config[field] = Math.max(min, Math.min(max, config[field] + delta));
-        }
-
-        window.pomodoroLogic.saveConfig();
-        this.renderSetup();
-    },
-
     toggleAutoStart: function() {
         window.pomodoroLogic.config.autoStart = !window.pomodoroLogic.config.autoStart;
         window.pomodoroLogic.saveConfig();
-        this.renderSetup();
+        const btn = document.getElementById('btn-auto-start');
+        if (btn) {
+            const on = window.pomodoroLogic.config.autoStart;
+            btn.className = `px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 ${on ? 'bg-primary-600 text-white shadow-md shadow-primary-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`;
+            btn.innerHTML = `<i class="ph-bold ${on ? 'ph-check-circle' : 'ph-circle'}"></i> Auto-iniciar Ciclos: ${on ? 'Ligado' : 'Desligado'}`;
+        }
     },
 
     toggleSound: function() {
@@ -1026,7 +1174,22 @@ window.pomodoroController = {
         window.pomodoroLogic.config.pausaLonga = longa;
         window.pomodoroLogic.config.pomodorosAtePausaLonga = count;
         window.pomodoroLogic.saveConfig();
-        this.renderSetup();
+
+        // Update inputs directly
+        const inPomos = document.getElementById('cfg-input-pomos');
+        const inFoco = document.getElementById('cfg-input-foco');
+        const inCurta = document.getElementById('cfg-input-curta');
+        const inLonga = document.getElementById('cfg-input-longa');
+        if (inPomos) inPomos.value = count;
+        if (inFoco) inFoco.value = foco;
+        if (inCurta) inCurta.value = pausa;
+        if (inLonga) inLonga.value = longa;
+
+        const freqLabel = document.getElementById('cfg-label-longa-freq');
+        if (freqLabel) freqLabel.textContent = `A cada ${count} pomos`;
+
+        this._updatePausaExplainer();
+        window.utils.showToast(`Preset aplicado: ${foco}/${pausa} min`, 'info');
     },
 
     clearContext: function() {
@@ -1049,6 +1212,16 @@ window.pomodoroController = {
         if (matInput) {
             this.onMateriaChange(matInput.value);
         }
+
+        // Capture any directly typed values in inputs
+        const inPomos = document.getElementById('cfg-input-pomos');
+        const inFoco = document.getElementById('cfg-input-foco');
+        const inCurta = document.getElementById('cfg-input-curta');
+        const inLonga = document.getElementById('cfg-input-longa');
+        if (inPomos && parseInt(inPomos.value, 10)) logic.config.pomodorosAtePausaLonga = parseInt(inPomos.value, 10);
+        if (inFoco && parseInt(inFoco.value, 10)) logic.config.duracaoFoco = parseInt(inFoco.value, 10);
+        if (inCurta && parseInt(inCurta.value, 10)) logic.config.pausaCurta = parseInt(inCurta.value, 10);
+        if (inLonga && parseInt(inLonga.value, 10)) logic.config.pausaLonga = parseInt(inLonga.value, 10);
 
         logic.initSession(
             logic.config.pomodorosAtePausaLonga,
@@ -1165,13 +1338,26 @@ window.pomodoroController = {
         window.utils.showToast('Sessão registrada com sucesso! 🎉', 'success');
     },
 
+    editSessionNote: function(id) {
+        const state = window.store ? window.store.getState() : {};
+        const sessao = (state.pomodoroSessoes || []).find(s => s.id === id);
+        if (!sessao) return;
+
+        const novaNota = prompt('Editar anotação desta sessão de estudo:', sessao.nota || '');
+        if (novaNota !== null) {
+            window.store.updatePomodoroSessaoNota(id, novaNota);
+            this.renderHistory();
+            window.utils.showToast('Anotação atualizada!', 'success');
+        }
+    },
+
     removeSession: function(id) {
-        if (!confirm('Remover este registro de pomodoro do histórico?')) return;
+        if (!confirm('Deseja realmente excluir este registro de pomodoro do histórico?')) return;
         if (window.store) {
             window.store.removePomodoroSessao(id);
             this.renderHistory();
             this.renderStats();
-            window.utils.showToast('Registro removido.', 'info');
+            window.utils.showToast('Registro excluído com sucesso.', 'info');
         }
     },
 

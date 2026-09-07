@@ -19,6 +19,7 @@ window.store = {
             pausaCurta: 5,
             pausaLonga: 15,
             pomodorosAtePausaLonga: 4,
+            usarPausaLonga: true,
             autoStart: false,
             metaDiaria: 8,
             somAtivado: true
@@ -346,6 +347,14 @@ window.store = {
         this.save();
     },
 
+    updatePomodoroSessaoNota: function(id, novaNota) {
+        const sessao = this.state.pomodoroSessoes.find(s => s.id === id);
+        if (sessao) {
+            sessao.nota = (novaNota || '').trim();
+            this.save();
+        }
+    },
+
     updatePomodoroConfig: function(config) {
         this.state.pomodoroConfig = { ...this.state.pomodoroConfig, ...config };
         this.save();
@@ -463,6 +472,7 @@ window.store = {
                     pausaCurta: 5,
                     pausaLonga: 15,
                     pomodorosAtePausaLonga: 4,
+                    usarPausaLonga: true,
                     autoStart: false,
                     metaDiaria: 8,
                     somAtivado: true
