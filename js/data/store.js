@@ -357,7 +357,10 @@ window.store = {
 
     updatePomodoroConfig: function(config) {
         this.state.pomodoroConfig = { ...this.state.pomodoroConfig, ...config };
-        this.save();
+        if (this._pomoSaveTimeout) clearTimeout(this._pomoSaveTimeout);
+        this._pomoSaveTimeout = setTimeout(() => {
+            this.save(true);
+        }, 1000);
     },
 
     addPomodoroCategoria: function(nome) {
@@ -391,15 +394,17 @@ window.store = {
         return obj;
     },
 
-    save: function() {
+    save: function(silent = false) {
         if (!window.db || !this.state.isAuthenticated) return;
         if (!this.state.hasLoadedFromCloud) {
             console.warn("Store: Save blocked because cloud data hasn't loaded yet.");
             return;
         }
 
-        // Optimistic Refresh
-        this.triggerUIRefresh();
+        // Optimistic Refresh unless silent
+        if (!silent) {
+            this.triggerUIRefresh();
+        }
 
         // Clean any undefined values (Firestore fails on them)
         const dataToSave = this.cleanData(this.state);

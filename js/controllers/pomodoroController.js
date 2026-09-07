@@ -36,7 +36,7 @@ window.pomodoroController = {
     },
 
     // --- RENDER ORCHESTRATOR ---
-    render: function() {
+    render: function(force = false) {
         if (!this.container) this.cacheDOM();
         if (!this.container) return;
 
@@ -48,10 +48,16 @@ window.pomodoroController = {
 
         switch (this.view) {
             case 'setup':
-                this.renderSetup();
+                // Never re-render setup if already mounted unless forced, preventing flicker, lag and input loss
+                const isMounted = document.getElementById('cfg-input-pomos') !== null;
+                if (!isMounted || force) {
+                    this.renderSetup();
+                }
                 break;
             case 'active':
-                this.renderActive();
+                if (!document.getElementById('pomo-active-card') || force) {
+                    this.renderActive();
+                }
                 break;
             case 'complete':
                 this.renderComplete();
@@ -135,7 +141,7 @@ window.pomodoroController = {
                             <p class="text-xs text-gray-400 font-medium mt-1">Digite o tempo desejado ou use os botões para ajustar os ciclos</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="window.pomodoroController.toggleSound()" class="px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all active:scale-95 flex items-center gap-1.5 ${config.somAtivado !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}" title="Alerta sonoro">
+                            <button id="btn-sound-setup" onclick="window.pomodoroController.toggleSound()" class="px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all active:scale-95 flex items-center gap-1.5 ${config.somAtivado !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}" title="Alerta sonoro">
                                 <i class="ph-bold ${config.somAtivado !== false ? 'ph-speaker-high' : 'ph-speaker-slash'} text-sm"></i>
                                 <span>${config.somAtivado !== false ? 'Som Ativo' : 'Mudo'}</span>
                             </button>
@@ -336,7 +342,7 @@ window.pomodoroController = {
                     </div>
 
                     <div class="flex items-center gap-2 ml-auto">
-                        <button type="button" onclick="window.pomodoroController.toggleSound()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="${logic.config.somAtivado !== false ? 'Silenciar som' : 'Ativar som'}">
+                        <button id="btn-sound-active" type="button" onclick="window.pomodoroController.toggleSound()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="${logic.config.somAtivado !== false ? 'Silenciar som' : 'Ativar som'}">
                             <i class="ph-bold ${logic.config.somAtivado !== false ? 'ph-speaker-high text-emerald-600' : 'ph-speaker-slash text-gray-400'} text-lg"></i>
                         </button>
                         <button type="button" onclick="window.pomodoroController.toggleFullscreen()" class="w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-all active:scale-95" title="Modo Tela Cheia">
@@ -976,13 +982,6 @@ window.pomodoroController = {
 
         const [min, max] = limits[field] || [1, 120];
         const targetProp = field === 'totalPomodoros' ? 'pomodorosAtePausaLonga' : field;
-        const current = config[targetProp] || 25;
-        const next = Math.max(min, Math.min(max, current + delta));
-        config[targetProp] = next;
-
-        window.pomodoroLogic.saveConfig();
-
-        // Update corresponding input value directly without page reload/lag
         const inputMap = {
             totalPomodoros: 'cfg-input-pomos',
             duracaoFoco: 'cfg-input-foco',
@@ -990,6 +989,12 @@ window.pomodoroController = {
             pausaLonga: 'cfg-input-longa'
         };
         const el = document.getElementById(inputMap[field]);
+        const current = (el && !isNaN(parseInt(el.value, 10))) ? parseInt(el.value, 10) : (config[targetProp] || 25);
+        const next = Math.max(min, Math.min(max, current + delta));
+        config[targetProp] = next;
+
+        window.pomodoroLogic.saveConfig();
+
         if (el) el.value = next;
 
         // Update frequency label if pomos changed
@@ -1145,14 +1150,24 @@ window.pomodoroController = {
 
     toggleSound: function() {
         if (!window.pomodoroLogic) return;
-        window.pomodoroLogic.config.somAtivado = window.pomodoroLogic.config.somAtivado === false ? true : false;
-        window.pomodoroLogic.saveConfig();
-        if (this.view === 'active') {
-            this.renderActive();
-        } else {
-            this.renderSetup();
+        const logic = window.pomodoroLogic;
+        logic.config.somAtivado = logic.config.somAtivado === false ? true : false;
+        logic.saveConfig();
+        const active = logic.config.somAtivado;
+
+        const btnSetup = document.getElementById('btn-sound-setup');
+        if (btnSetup) {
+            btnSetup.className = `px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-all active:scale-95 flex items-center gap-1.5 ${active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}`;
+            btnSetup.innerHTML = `<i class="ph-bold ${active ? 'ph-speaker-high' : 'ph-speaker-slash'} text-sm"></i> <span>${active ? 'Som Ativo' : 'Mudo'}</span>`;
         }
-        window.utils.showToast(window.pomodoroLogic.config.somAtivado ? 'Alarme sonoro ativado 🔊' : 'Alarme sonoro desativado 🔇', 'info');
+
+        const btnActive = document.getElementById('btn-sound-active');
+        if (btnActive) {
+            btnActive.innerHTML = `<i class="ph-bold ${active ? 'ph-speaker-high text-emerald-600' : 'ph-speaker-slash text-gray-400'} text-lg"></i>`;
+            btnActive.title = active ? 'Silenciar som' : 'Ativar som';
+        }
+
+        window.utils.showToast(active ? 'Alarme sonoro ativado 🔊' : 'Alarme sonoro desativado 🔇', 'info');
     },
 
     toggleFullscreen: function() {

@@ -59,6 +59,12 @@ window.pomodoroLogic = {
     ],
 
     loadConfig: function() {
+        try {
+            const local = localStorage.getItem('pomo_config');
+            if (local) {
+                this.config = { ...this.config, ...JSON.parse(local) };
+            }
+        } catch(e) {}
         if (window.store) {
             const saved = window.store.getState().pomodoroConfig;
             if (saved) {
@@ -68,6 +74,9 @@ window.pomodoroLogic = {
     },
 
     saveConfig: function() {
+        try {
+            localStorage.setItem('pomo_config', JSON.stringify(this.config));
+        } catch(e) {}
         if (window.store) {
             window.store.updatePomodoroConfig(this.config);
         }
