@@ -117,6 +117,8 @@ window.pomodoroLogic = {
             this.mode = 'focus';
             this.totalTime = this.config.duracaoFoco * 60;
             this.timeLeft = this.totalTime;
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
+            this.accumulatedFocusBeforePhase = this.totalFocusSeconds;
         } else if (this.mode === 'focus') {
             // Focus just ended, decide on break type
             this.pomodorosCompleted++;
@@ -138,6 +140,7 @@ window.pomodoroLogic = {
                 this.totalTime = this.config.pausaCurta * 60;
             }
             this.timeLeft = this.totalTime;
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
         }
 
         this.isPaused = false;
@@ -149,13 +152,22 @@ window.pomodoroLogic = {
 
     _startInterval: function() {
         if (this.timer) clearInterval(this.timer);
+        if (!this.targetEndTime || isNaN(this.targetEndTime)) {
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
+        }
 
-        this.timer = setInterval(() => {
-            this.timeLeft--;
+        const tick = () => {
+            if (!this.isActive || this.isPaused) return;
+
+            const now = Date.now();
+            // Wall-clock calculation: immune to browser background tab throttling
+            const remaining = Math.max(0, Math.ceil((this.targetEndTime - now) / 1000));
+            this.timeLeft = remaining;
             
-            // Track focus seconds
+            // Track focus seconds based on exact real elapsed time
             if (this.mode === 'focus') {
-                this.totalFocusSeconds++;
+                const elapsedInPhase = Math.max(0, this.totalTime - this.timeLeft);
+                this.totalFocusSeconds = (this.accumulatedFocusBeforePhase || 0) + elapsedInPhase;
             }
 
             // Periodically persist active state
@@ -167,14 +179,42 @@ window.pomodoroLogic = {
             this._updateTitle();
 
             if (this.onTick) {
-                const perc = (this.timeLeft / this.totalTime) * 100;
+                const perc = this.totalTime > 0 ? (this.timeLeft / this.totalTime) * 100 : 0;
                 this.onTick(this.formatTime(this.timeLeft), perc, this.timeLeft);
             }
 
             if (this.timeLeft <= 0) {
                 this._phaseComplete();
             }
-        }, 1000);
+        };
+
+        // Execute immediately
+        tick();
+        this.timer = setInterval(tick, 1000);
+    },
+
+    // Fast sync called immediately upon tab visibility / focus change
+    _checkTimestampTick: function() {
+        if (!this.isActive || this.isPaused || !this.targetEndTime) return;
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((this.targetEndTime - now) / 1000));
+        this.timeLeft = remaining;
+
+        if (this.mode === 'focus') {
+            const elapsedInPhase = Math.max(0, this.totalTime - this.timeLeft);
+            this.totalFocusSeconds = (this.accumulatedFocusBeforePhase || 0) + elapsedInPhase;
+        }
+
+        this._updateTitle();
+
+        if (this.onTick) {
+            const perc = this.totalTime > 0 ? (this.timeLeft / this.totalTime) * 100 : 0;
+            this.onTick(this.formatTime(this.timeLeft), perc, this.timeLeft);
+        }
+
+        if (this.timeLeft <= 0) {
+            this._phaseComplete();
+        }
     },
 
     _phaseComplete: function() {
@@ -260,6 +300,13 @@ window.pomodoroLogic = {
             clearInterval(this.timer);
             this.timer = null;
         }
+        if (this.targetEndTime) {
+            this.timeLeft = Math.max(0, Math.ceil((this.targetEndTime - Date.now()) / 1000));
+        }
+        if (this.mode === 'focus') {
+            const elapsedInPhase = Math.max(0, this.totalTime - this.timeLeft);
+            this.totalFocusSeconds = (this.accumulatedFocusBeforePhase || 0) + elapsedInPhase;
+        }
         this.isActive = false;
         this.isPaused = true;
         this._updateTitle();
@@ -271,6 +318,10 @@ window.pomodoroLogic = {
         if (!this.isPaused) return;
         this.isPaused = false;
         this.isActive = true;
+        this.targetEndTime = Date.now() + (this.timeLeft * 1000);
+        if (this.mode === 'focus') {
+            this.accumulatedFocusBeforePhase = this.totalFocusSeconds - Math.max(0, this.totalTime - this.timeLeft);
+        }
         this._startInterval();
         this._notifyStateChange();
         this._persistActiveSession();
@@ -304,6 +355,11 @@ window.pomodoroLogic = {
             this.mode = 'focus';
             this.totalTime = this.config.duracaoFoco * 60;
             this.timeLeft = this.totalTime;
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
+            this.accumulatedFocusBeforePhase = this.totalFocusSeconds;
+            this.isActive = true;
+            this.isPaused = false;
+            this._startInterval();
             this._notifyStateChange();
             this._persistActiveSession();
         }
@@ -482,13 +538,14 @@ window.pomodoroLogic = {
                 mode: this.mode,
                 totalTime: this.totalTime,
                 timeLeft: this.timeLeft,
-                targetEndTime: Date.now() + (this.timeLeft * 1000),
+                targetEndTime: this.isPaused ? (Date.now() + (this.timeLeft * 1000)) : (this.targetEndTime || (Date.now() + (this.timeLeft * 1000))),
                 isActive: this.isActive,
                 isPaused: this.isPaused,
                 currentPomodoro: this.currentPomodoro,
                 totalPomodoros: this.totalPomodoros,
                 pomodorosCompleted: this.pomodorosCompleted,
                 totalFocusSeconds: this.totalFocusSeconds,
+                accumulatedFocusBeforePhase: this.accumulatedFocusBeforePhase || 0,
                 sessionStartTime: this.sessionStartTime,
                 context: this.context,
                 config: this.config,
@@ -523,6 +580,7 @@ window.pomodoroLogic = {
             this.totalPomodoros = saved.totalPomodoros || 4;
             this.pomodorosCompleted = saved.pomodorosCompleted || 0;
             this.totalFocusSeconds = saved.totalFocusSeconds || 0;
+            this.accumulatedFocusBeforePhase = saved.accumulatedFocusBeforePhase || 0;
             this.sessionStartTime = saved.sessionStartTime || new Date().toISOString();
             this.context = saved.context || { categoria: 'Livre', semana: null, weekNum: null, materia: '', materias: [], conteudos: [] };
             this.currentSessionLogs = saved.currentSessionLogs || [];
@@ -530,6 +588,7 @@ window.pomodoroLogic = {
 
             if (saved.isPaused) {
                 this.timeLeft = saved.timeLeft;
+                this.targetEndTime = Date.now() + (this.timeLeft * 1000);
                 this.isActive = false;
                 this.isPaused = true;
                 return true;
@@ -537,9 +596,10 @@ window.pomodoroLogic = {
 
             if (saved.isActive) {
                 const now = Date.now();
-                const remaining = Math.round((saved.targetEndTime - now) / 1000);
+                const remaining = Math.max(0, Math.ceil((saved.targetEndTime - now) / 1000));
                 if (remaining > 0) {
                     this.timeLeft = remaining;
+                    this.targetEndTime = saved.targetEndTime;
                     this.isActive = true;
                     this.isPaused = false;
                     this._startInterval();
@@ -592,9 +652,22 @@ window.pomodoroLogic = {
     }
 };
 
-// Global unload safety net
+// Global safety nets
 window.addEventListener('beforeunload', () => {
     if (window.pomodoroLogic && (window.pomodoroLogic.isActive || window.pomodoroLogic.isPaused)) {
         window.pomodoroLogic._persistActiveSession();
+    }
+});
+
+// Immediate re-sync when switching back to tab (prevents any background throttling lag)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && window.pomodoroLogic) {
+        window.pomodoroLogic._checkTimestampTick();
+    }
+});
+
+window.addEventListener('focus', () => {
+    if (window.pomodoroLogic) {
+        window.pomodoroLogic._checkTimestampTick();
     }
 });
