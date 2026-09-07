@@ -13,7 +13,7 @@ window.store = {
         materiais: [],  // { conteudoId, links: [], notas: "" }
         linksUteis: [], // { id, titulo, url }
         pomodoroSessoes: [], // { id, dataInicio, dataFim, categoria, semana, weekNum, materias, pomodorosAlvo, pomodorosConcluidos, duracaoFoco, duracaoPausa, tempoTotalFocoSeg, nota, pomodorosLog: [] }
-        pomodoroCategorias: ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'],
+        pomodoroCategorias: [],
         pomodoroConfig: {
             duracaoFoco: 25,
             pausaCurta: 5,
@@ -21,7 +21,6 @@ window.store = {
             pomodorosAtePausaLonga: 4,
             usarPausaLonga: true,
             autoStart: false,
-            metaDiaria: 8,
             somAtivado: true
         },
         estatisticas: {
@@ -373,6 +372,23 @@ window.store = {
         }
     },
 
+    editPomodoroCategoria: function(antigoNome, novoNome) {
+        if (!antigoNome || !novoNome || !novoNome.trim()) return;
+        const limpo = novoNome.trim();
+        if (!this.state.pomodoroCategorias) return;
+        const idx = this.state.pomodoroCategorias.indexOf(antigoNome);
+        if (idx !== -1) {
+            this.state.pomodoroCategorias[idx] = limpo;
+            // Also update any past sessions referencing this category
+            if (this.state.pomodoroSessoes) {
+                this.state.pomodoroSessoes.forEach(s => {
+                    if (s.categoria === antigoNome) s.categoria = limpo;
+                });
+            }
+            this.save();
+        }
+    },
+
     removePomodoroCategoria: function(nome) {
         if (!this.state.pomodoroCategorias) return;
         this.state.pomodoroCategorias = this.state.pomodoroCategorias.filter(c => c !== nome);
@@ -471,7 +487,7 @@ window.store = {
                 materiais: [],
                 linksUteis: [],
                 pomodoroSessoes: [],
-                pomodoroCategorias: ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'],
+                pomodoroCategorias: [],
                 pomodoroConfig: {
                     duracaoFoco: 25,
                     pausaCurta: 5,
@@ -479,7 +495,6 @@ window.store = {
                     pomodorosAtePausaLonga: 4,
                     usarPausaLonga: true,
                     autoStart: false,
-                    metaDiaria: 8,
                     somAtivado: true
                 },
                 estatisticas: {
@@ -552,6 +567,16 @@ window.store = {
 
                 // Merge cloud data into state
                 this.state = { ...this.state, ...cloudData, isAuthenticated: true, hasLoadedFromCloud: true };
+                
+                // Purge invented default mock categories if present in existing cloud record
+                const mockCats = ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'];
+                if (this.state.pomodoroCategorias && Array.isArray(this.state.pomodoroCategorias)) {
+                    const originalLength = this.state.pomodoroCategorias.length;
+                    this.state.pomodoroCategorias = this.state.pomodoroCategorias.filter(c => !mockCats.includes(c));
+                    if (this.state.pomodoroCategorias.length !== originalLength) {
+                        this.save(true);
+                    }
+                }
                 
                 this.sortMaterias();
                 this.sortConteudos();

@@ -358,7 +358,6 @@ window.cronogramaController = {
                         weekMaterias.push(m.nome);
                     }
                 });
-                const materiasJson = JSON.stringify(weekMaterias).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 
                 const divider = document.createElement('tr');
                 divider.className = 'bg-gray-50 border-y border-gray-100';
@@ -388,7 +387,7 @@ window.cronogramaController = {
                                 </span>
                             ` : ''}
 
-                            <button onclick="window.pomodoroController.startFromCronograma('${item.semana}', ${weekNum}, JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(weekMaterias))}')))" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95" title="Iniciar Pomodoro para esta semana">
+                            <button onclick="window.pomodoroController.startFromCronograma('${item.semana}', ${weekNum})" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95" title="Iniciar Pomodoro para esta semana">
                                 <i class="ph-bold ph-timer text-sm"></i> Iniciar Pomodoro
                             </button>
                         </div>

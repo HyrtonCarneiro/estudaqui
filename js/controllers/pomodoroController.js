@@ -71,7 +71,7 @@ window.pomodoroController = {
     // --- SETUP VIEW ---
     renderSetup: function() {
         if (!this.container) return;
-        const config = window.pomodoroLogic ? window.pomodoroLogic.config : { duracaoFoco: 25, pausaCurta: 5, pausaLonga: 15, pomodorosAtePausaLonga: 4, usarPausaLonga: true, autoStart: false, metaDiaria: 8, somAtivado: true };
+        const config = window.pomodoroLogic ? window.pomodoroLogic.config : { duracaoFoco: 25, pausaCurta: 5, pausaLonga: 15, pomodorosAtePausaLonga: 4, usarPausaLonga: true, autoStart: false, somAtivado: true };
         const ctx = window.pomodoroLogic ? window.pomodoroLogic.context : {};
         const state = window.store ? window.store.getState() : { materias: [], cronograma: [], pomodoroCategorias: [] };
         
@@ -96,8 +96,9 @@ window.pomodoroController = {
             };
         });
 
-        // Custom Categories from store
-        const customCategories = state.pomodoroCategorias || ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'];
+        // Custom Categories from store (only user-created, no mock defaults)
+        const mockCats = ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'];
+        const customCategories = (state.pomodoroCategorias || []).filter(c => !mockCats.includes(c));
         const currentCategory = ctx.categoria || (ctx.semana ? `Semana ${ctx.weekNum || ''}`.trim() : 'Livre');
 
         // Materias list
@@ -156,32 +157,57 @@ window.pomodoroController = {
                                 <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
                                     <i class="ph-bold ph-folder-notch-open text-primary-600 mr-1"></i> Categoria / Origem
                                 </label>
-                                <button onclick="window.pomodoroController.promptNewCategory()" class="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-wider flex items-center gap-1">
-                                    <i class="ph-bold ph-plus-circle"></i> Nova Categoria
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="window.pomodoroController.promptNewCategory()" class="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-wider flex items-center gap-1">
+                                        <i class="ph-bold ph-plus-circle"></i> Nova Categoria
+                                    </button>
+                                    ${customCategories.length > 0 ? `
+                                        <button type="button" onclick="window.pomodoroController.openCategoryManagerModal()" class="text-[10px] font-black text-gray-400 hover:text-gray-700 uppercase tracking-wider flex items-center gap-1" title="Gerenciar categorias personalizadas">
+                                            <i class="ph-bold ph-gear"></i> Gerenciar
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                             <select id="pomo-select-categoria" onchange="window.pomodoroController.onCategoryChange(this.value)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none transition-all font-bold text-sm text-gray-800">
-                                <option value="Livre" ${currentCategory === 'Livre' ? 'selected' : ''}>Sessão Livre (Sem categoria)</option>
+                                <option value="Livre" ${!ctx.semana && currentCategory === 'Livre' ? 'selected' : ''}>Sessão Livre (Sem categoria)</option>
                                 
                                 ${cronoWeeks.length > 0 ? `
                                     <optgroup label="Semanas do Cronograma">
                                         ${cronoWeeks.map(w => `
-                                            <option value="${this._escapeHtml(w.value)}" data-semana="${w.semana}" data-weeknum="${w.weekNum}" ${currentCategory === w.value ? 'selected' : ''}>
+                                            <option value="${this._escapeHtml(w.value)}" data-semana="${w.semana}" data-weeknum="${w.weekNum}" ${(ctx.semana === w.semana || currentCategory === w.value) ? 'selected' : ''}>
                                                 📅 ${this._escapeHtml(w.label)}
                                             </option>
                                         `).join('')}
                                     </optgroup>
                                 ` : ''}
 
-                                <optgroup label="Categorias Personalizadas">
-                                    ${customCategories.map(cat => `
-                                        <option value="${this._escapeHtml(cat)}" ${currentCategory === cat ? 'selected' : ''}>
-                                            🏷️ ${this._escapeHtml(cat)}
-                                        </option>
-                                    `).join('')}
-                                </optgroup>
+                                ${customCategories.length > 0 ? `
+                                    <optgroup label="Categorias Personalizadas">
+                                        ${customCategories.map(cat => `
+                                            <option value="${this._escapeHtml(cat)}" ${currentCategory === cat ? 'selected' : ''}>
+                                                🏷️ ${this._escapeHtml(cat)}
+                                            </option>
+                                        `).join('')}
+                                    </optgroup>
+                                ` : ''}
                             </select>
-                            <p class="text-[10px] text-gray-400 mt-1.5">As semanas do cronograma e categorias agrupam suas estatísticas.</p>
+
+                            <div id="pomo-cat-actions">
+                                ${customCategories.includes(currentCategory) ? `
+                                    <div class="flex items-center gap-2 mt-1.5">
+                                        <span class="text-[10px] text-gray-400 font-bold">Ações da categoria:</span>
+                                        <button type="button" onclick="window.pomodoroController.promptEditCategory('${this._escapeHtml(currentCategory)}')" class="text-[10px] font-bold text-amber-600 hover:underline flex items-center gap-0.5" title="Renomear esta categoria">
+                                            <i class="ph-bold ph-pencil-simple"></i> Renomear
+                                        </button>
+                                        <span class="text-gray-300">•</span>
+                                        <button type="button" onclick="window.pomodoroController.deleteCategory('${this._escapeHtml(currentCategory)}')" class="text-[10px] font-bold text-red-500 hover:underline flex items-center gap-0.5" title="Excluir esta categoria">
+                                            <i class="ph-bold ph-trash"></i> Excluir
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <p class="text-[10px] text-gray-400 mt-1.5">As semanas do cronograma e suas categorias agrupam suas estatísticas.</p>
+                                `}
+                            </div>
                         </div>
 
                         <!-- Matéria -->
@@ -416,32 +442,23 @@ window.pomodoroController = {
                 </div>
 
                 <!-- Footer metrics bar -->
-                <div class="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100 text-left">
+                <div class="grid grid-cols-2 gap-4 pt-6 border-t border-gray-100 text-left">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shrink-0">
                             <i class="ph-bold ph-clock text-xl"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tempo de Foco</p>
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tempo de Foco Acumulado</p>
                             <p class="text-sm font-black text-gray-800">${logic.formatDuration(logic.totalFocusSeconds)}</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 justify-end sm:justify-start">
                         <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
                             <i class="ph-bold ph-check-circle text-xl"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Concluídos</p>
-                            <p class="text-sm font-black text-gray-800">${logic.pomodorosCompleted}/${logic.totalPomodoros}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
-                            <i class="ph-bold ph-target text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Meta Diária</p>
-                            <p class="text-sm font-black text-gray-800">${this._getTodayPomodoroCount()}/${logic.config.metaDiaria || 8}</p>
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ciclos de Foco</p>
+                            <p class="text-sm font-black text-gray-800">${logic.pomodorosCompleted} de ${logic.totalPomodoros} concluídos</p>
                         </div>
                     </div>
                 </div>
@@ -527,18 +544,11 @@ window.pomodoroController = {
         const period = this.statsPeriod;
         const logs = this._extractLogsForPeriod(period);
         const sessoes = (window.store ? window.store.getState().pomodoroSessoes : []) || [];
-        const config = window.pomodoroLogic ? window.pomodoroLogic.config : { metaDiaria: 8 };
 
         // Overall calculations for the chosen period
         const totalPomos = logs.length;
         const totalFocoSeg = logs.reduce((sum, l) => sum + (l.duracaoSeg || (l.duracaoMin * 60) || 0), 0);
         const totalFocoStr = window.pomodoroLogic ? window.pomodoroLogic.formatDuration(totalFocoSeg) : Math.round(totalFocoSeg / 60) + 'min';
-
-        // Daily Goal (Today's pomodoros)
-        const todayLogs = this._extractLogsForPeriod('hoje');
-        const todayCount = todayLogs.length;
-        const metaDiaria = config.metaDiaria || 8;
-        const metaPerc = Math.min(100, Math.round((todayCount / metaDiaria) * 100));
 
         // Group by Matéria
         const materiaTotals = {};
@@ -620,23 +630,6 @@ window.pomodoroController = {
                         <button type="button" onclick="window.pomodoroController.setStatsPeriod('semana')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'semana' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Semana</button>
                         <button type="button" onclick="window.pomodoroController.setStatsPeriod('mes')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'mes' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Mês</button>
                         <button type="button" onclick="window.pomodoroController.setStatsPeriod('geral')" class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${period === 'geral' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}">Geral</button>
-                    </div>
-                </div>
-
-                <!-- Daily Goal Bar -->
-                <div class="bg-gradient-to-r from-primary-50 via-indigo-50 to-purple-50 rounded-2xl p-5 border border-primary-100/70 mb-8">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">🎯</span>
-                            <div>
-                                <p class="text-xs font-black text-gray-800 uppercase tracking-wider">Meta Diária de Pomodoros</p>
-                                <p class="text-[10px] text-gray-400 font-bold">${todayCount} de ${metaDiaria} concluídos hoje (${metaPerc}%)</p>
-                            </div>
-                        </div>
-                        <span class="text-sm font-black text-primary-600">${todayCount}/${metaDiaria}</span>
-                    </div>
-                    <div class="w-full bg-white/80 rounded-full h-3 overflow-hidden border border-primary-100">
-                        <div class="bg-gradient-to-r from-primary-500 to-indigo-600 h-full rounded-full transition-all duration-700" style="width: ${metaPerc}%"></div>
                     </div>
                 </div>
 
@@ -1112,6 +1105,30 @@ window.pomodoroController = {
                 logic.context.weekNum = null;
             }
         }
+
+        // Dynamically update quick edit/delete buttons below select
+        const actionsContainer = document.getElementById('pomo-cat-actions');
+        if (actionsContainer) {
+            const state = window.store ? window.store.getState() : {};
+            const mockCats = ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'];
+            const customCategories = (state.pomodoroCategorias || []).filter(c => !mockCats.includes(c));
+            if (customCategories.includes(val)) {
+                actionsContainer.innerHTML = `
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span class="text-[10px] text-gray-400 font-bold">Ações da categoria:</span>
+                        <button type="button" onclick="window.pomodoroController.promptEditCategory('${this._escapeHtml(val)}')" class="text-[10px] font-bold text-amber-600 hover:underline flex items-center gap-0.5" title="Renomear esta categoria">
+                            <i class="ph-bold ph-pencil-simple"></i> Renomear
+                        </button>
+                        <span class="text-gray-300">•</span>
+                        <button type="button" onclick="window.pomodoroController.deleteCategory('${this._escapeHtml(val)}')" class="text-[10px] font-bold text-red-500 hover:underline flex items-center gap-0.5" title="Excluir esta categoria">
+                            <i class="ph-bold ph-trash"></i> Excluir
+                        </button>
+                    </div>
+                `;
+            } else {
+                actionsContainer.innerHTML = `<p class="text-[10px] text-gray-400 mt-1.5">As semanas do cronograma e suas categorias agrupam suas estatísticas.</p>`;
+            }
+        }
     },
 
     onMateriaChange: function(val) {
@@ -1124,7 +1141,7 @@ window.pomodoroController = {
     },
 
     promptNewCategory: function() {
-        const nome = prompt('Digite o nome da nova categoria (ex: Simulados, Questões, Leitura):');
+        const nome = prompt('Digite o nome da sua nova categoria personalizada (ex: Discursivas, Jurisprudência, etc.):');
         if (!nome || !nome.trim()) return;
         const cleanName = nome.trim();
         if (window.store) {
@@ -1132,9 +1149,130 @@ window.pomodoroController = {
             if (window.pomodoroLogic) {
                 window.pomodoroLogic.context.categoria = cleanName;
             }
-            this.renderSetup();
-            window.utils.showToast(`Categoria "${cleanName}" adicionada com sucesso!`, 'success');
+            this.render(true);
+            window.utils.showToast(`Categoria "🏷️ ${cleanName}" criada com sucesso!`, 'success');
         }
+    },
+
+    promptEditCategory: function(oldName) {
+        const novo = prompt('Editar nome da categoria:', oldName);
+        if (!novo || !novo.trim() || novo.trim() === oldName) return;
+        const cleanNovo = novo.trim();
+        if (window.store) {
+            window.store.editPomodoroCategoria(oldName, cleanNovo);
+            if (window.pomodoroLogic && window.pomodoroLogic.context.categoria === oldName) {
+                window.pomodoroLogic.context.categoria = cleanNovo;
+            }
+            this.render(true);
+            window.utils.showToast(`Categoria renomeada para "🏷️ ${cleanNovo}"!`, 'success');
+        }
+    },
+
+    deleteCategory: function(name) {
+        if (!confirm(`Deseja realmente excluir a categoria "🏷️ ${name}"?`)) return;
+        if (window.store) {
+            window.store.removePomodoroCategoria(name);
+            if (window.pomodoroLogic && window.pomodoroLogic.context.categoria === name) {
+                window.pomodoroLogic.context.categoria = 'Livre';
+            }
+            this.render(true);
+            window.utils.showToast(`Categoria "🏷️ ${name}" excluída!`, 'info');
+        }
+    },
+
+    openCategoryManagerModal: function() {
+        let modal = document.getElementById('pomo-category-manager-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'pomo-category-manager-modal';
+            document.body.appendChild(modal);
+        }
+        this._renderCategoryManagerContent();
+    },
+
+    _renderCategoryManagerContent: function() {
+        const modal = document.getElementById('pomo-category-manager-modal');
+        if (!modal) return;
+        const state = window.store ? window.store.getState() : {};
+        const mockCats = ['Simulados', 'Revisão Geral', 'Questões', 'Leitura'];
+        const categories = (state.pomodoroCategorias || []).filter(c => !mockCats.includes(c));
+
+        modal.innerHTML = `
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fade-in">
+                <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-100 space-y-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                                <i class="ph-bold ph-tag"></i>
+                            </span>
+                            <div>
+                                <h3 class="text-base font-black text-gray-900">Gerenciar Categorias</h3>
+                                <p class="text-xs text-gray-400 font-medium">Crie, edite ou remova suas categorias personalizadas</p>
+                            </div>
+                        </div>
+                        <button onclick="window.pomodoroController.closeCategoryManagerModal()" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center font-bold">
+                            <i class="ph-bold ph-x"></i>
+                        </button>
+                    </div>
+
+                    <!-- Add new inline -->
+                    <div class="flex gap-2">
+                        <input id="input-new-cat-manager" type="text" placeholder="Nome da nova categoria..." class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary-500 outline-none" onkeydown="if(event.key==='Enter') window.pomodoroController.addCategoryFromManager()">
+                        <button onclick="window.pomodoroController.addCategoryFromManager()" class="px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-md shadow-primary-200">
+                            <i class="ph-bold ph-plus"></i> Criar
+                        </button>
+                    </div>
+
+                    <!-- Categories list -->
+                    <div class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        ${categories.length === 0 ? `
+                            <p class="text-xs text-gray-400 italic text-center py-6">Nenhuma categoria personalizada criada ainda.</p>
+                        ` : categories.map(cat => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100/80 rounded-2xl border border-gray-100 transition-all">
+                                <span class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                                    <span class="text-base">🏷️</span> ${this._escapeHtml(cat)}
+                                </span>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="window.pomodoroController.promptEditCategory('${this._escapeHtml(cat)}'); window.pomodoroController._renderCategoryManagerContent();" class="w-7 h-7 rounded-lg bg-white shadow-sm hover:bg-amber-50 hover:text-amber-600 text-gray-500 flex items-center justify-center transition-all" title="Renomear">
+                                        <i class="ph-bold ph-pencil-simple text-xs"></i>
+                                    </button>
+                                    <button onclick="window.pomodoroController.deleteCategory('${this._escapeHtml(cat)}'); window.pomodoroController._renderCategoryManagerContent();" class="w-7 h-7 rounded-lg bg-white shadow-sm hover:bg-red-50 hover:text-red-500 text-gray-500 flex items-center justify-center transition-all" title="Excluir">
+                                        <i class="ph-bold ph-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-100 flex justify-end">
+                        <button onclick="window.pomodoroController.closeCategoryManagerModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    addCategoryFromManager: function() {
+        const input = document.getElementById('input-new-cat-manager');
+        if (!input || !input.value || !input.value.trim()) return;
+        const nome = input.value.trim();
+        if (window.store) {
+            window.store.addPomodoroCategoria(nome);
+            if (window.pomodoroLogic) {
+                window.pomodoroLogic.context.categoria = nome;
+            }
+            this.render(true);
+            this._renderCategoryManagerContent();
+            window.utils.showToast(`Categoria "🏷️ ${nome}" criada!`, 'success');
+        }
+    },
+
+    closeCategoryManagerModal: function() {
+        const modal = document.getElementById('pomo-category-manager-modal');
+        if (modal) modal.innerHTML = '';
+        this.render(true);
     },
 
     toggleAutoStart: function() {
@@ -1256,26 +1394,47 @@ window.pomodoroController = {
     },
 
     // Triggered from Cronograma tab week header
-    startFromCronograma: function(semana, weekNum, materias) {
+    startFromCronograma: function(semana, weekNum, passedMaterias) {
         const logic = window.pomodoroLogic;
         if (!logic) return;
+
+        const state = window.store ? window.store.getState() : {};
+        let materias = passedMaterias;
+        if (!materias || !Array.isArray(materias) || materias.length === 0) {
+            const cronoItens = (state.cronograma || []).filter(i => i.semana === semana);
+            const seen = {};
+            materias = [];
+            cronoItens.forEach(i => {
+                const m = (state.materias || []).find(x => x.id === i.materiaId);
+                if (m && !seen[m.id]) {
+                    seen[m.id] = true;
+                    materias.push(m.nome);
+                }
+            });
+        }
+
+        const materiaPrincipal = (materias && materias.length > 0) ? materias[0] : '';
 
         logic.context = {
             categoria: `Semana ${weekNum}`,
             semana: semana,
             weekNum: weekNum,
-            materia: (materias && materias.length > 0) ? materias[0] : '',
+            materia: materiaPrincipal,
             materias: materias || [],
             conteudos: []
         };
+
+        this.view = 'setup';
 
         // Navigate to pomodoro tab
         if (window.appControllers) {
             window.appControllers.navigate('pomodoro');
         }
 
-        this.view = 'setup';
-        setTimeout(() => this.render(), 100);
+        // Force re-render setup with the selected week's context
+        this.render(true);
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     pauseTimer: function() {
@@ -1443,10 +1602,6 @@ window.pomodoroController = {
             }
         });
         return logs;
-    },
-
-    _getTodayPomodoroCount: function() {
-        return this._extractLogsForPeriod('hoje').length;
     },
 
     _onTick: function(time, perc, raw) {

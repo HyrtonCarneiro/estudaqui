@@ -24,7 +24,6 @@ window.pomodoroLogic = {
         pomodorosAtePausaLonga: 4,
         usarPausaLonga: true,
         autoStart: false,
-        metaDiaria: 8,
         somAtivado: true
     },
 
