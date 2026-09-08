@@ -68,14 +68,38 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* Subtle boost only for hardcoded 9px/10px labels so they are readable without zooming the whole page */
-        .text-\[8px\], .text-\[9px\] {
-            font-size: 11px !important;
-            line-height: 14px !important;
+        /* ===== Typography Normalization (Modern UX Standards) =====
+         * Gold standard: min readable = 12px, labels/captions = 13px, body = 14-16px.
+         * These overrides bring the custom Tailwind sizes up to legible minimums
+         * without changing layout structure or making anything feel "zoomed in".
+         */
+
+        /* Custom tiny sizes → readable caption size */
+        .text-\[7px\], .text-\[8px\], .text-\[9px\] {
+            font-size: 12.5px !important;
+            line-height: 16px !important;
         }
         .text-\[10px\] {
-            font-size: 11.5px !important;
-            line-height: 15px !important;
+            font-size: 13px !important;
+            line-height: 17px !important;
+        }
+        .text-\[11px\] {
+            font-size: 13px !important;
+            line-height: 17px !important;
+        }
+
+        /* Tailwind text-xs (12px) → 13px for better readability on labels/buttons */
+        .text-xs {
+            font-size: 0.8125rem !important;  /* 13px */
+            line-height: 1.125rem !important;  /* 18px */
+        }
+
+        /* Reduce overly wide letter-spacing on uppercase labels now that they're larger */
+        .tracking-\[0\.2em\] {
+            letter-spacing: 0.12em !important;
+        }
+        .tracking-widest {
+            letter-spacing: 0.08em !important;
         }
 
         /* ===== Mobile Navigation ===== */
