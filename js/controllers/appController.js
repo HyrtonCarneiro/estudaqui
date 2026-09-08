@@ -28,10 +28,14 @@ window.appControllers = {
             this.currentPage = null;
         }
 
-        // Toggle Admin Nav
+        // Toggle Admin Nav (desktop + mobile)
         const navAdmin = document.getElementById('nav-admin');
         if (navAdmin) {
             navAdmin.style.display = window.store.isAdmin() ? 'flex' : 'none';
+        }
+        const mobileAdmin = document.querySelector('[data-mobile-nav="admin"]');
+        if (mobileAdmin) {
+            mobileAdmin.style.display = window.store.isAdmin() ? 'flex' : 'none';
         }
     },
 
@@ -98,6 +102,18 @@ window.appControllers = {
                 } else {
                     btnDesktop.classList.remove('bg-primary-50', 'text-primary-600');
                     btnDesktop.classList.add('text-gray-500');
+                }
+            }
+
+            // Also update mobile menu items
+            const btnMobile = document.querySelector('[data-mobile-nav="' + nav + '"]');
+            if (btnMobile) {
+                if (nav === pageId) {
+                    btnMobile.classList.add('bg-primary-50', 'text-primary-600');
+                    btnMobile.classList.remove('text-gray-600');
+                } else {
+                    btnMobile.classList.remove('bg-primary-50', 'text-primary-600');
+                    btnMobile.classList.add('text-gray-600');
                 }
             }
         });
