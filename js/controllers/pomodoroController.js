@@ -1466,7 +1466,33 @@ window.pomodoroController = {
     },
 
     cancelSession: function() {
-        if (!confirm('Deseja encerrar a sessão antecipadamente? O tempo concluído será salvo no histórico.')) return;
+        const logic = window.pomodoroLogic;
+        if (!logic) return;
+
+        if (!confirm('Deseja encerrar a sessão antecipadamente? Todo o tempo já estudado até aqui será salvo no histórico.')) return;
+
+        // If currently in focus phase, record actual elapsed focus time from this partial block
+        if (logic.mode === 'focus') {
+            const elapsed = Math.max(0, logic.totalTime - logic.timeLeft);
+            if (elapsed >= 10) {
+                logic.totalFocusSeconds = (logic.accumulatedFocusBeforePhase || 0) + elapsed;
+                logic.pomodorosCompleted++;
+                const logItem = {
+                    id: 'pomo_item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    completedAt: new Date().toISOString(),
+                    duracaoMin: Math.max(1, Math.round(elapsed / 60)),
+                    duracaoSeg: elapsed,
+                    categoria: logic.context.categoria || (logic.context.semana ? `Semana ${logic.context.weekNum || ''}`.trim() : 'Livre'),
+                    semana: logic.context.semana || null,
+                    weekNum: logic.context.weekNum || null,
+                    materia: logic.context.materia || (logic.context.materias && logic.context.materias.length === 1 ? logic.context.materias[0] : (logic.context.materias && logic.context.materias.length > 1 ? logic.context.materias.join(', ') : 'Geral')),
+                    materias: logic.context.materias || []
+                };
+                logic.currentSessionLogs.push(logItem);
+            }
+        }
+
+        logic.stop();
         this._onSessionComplete();
     },
 

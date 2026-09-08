@@ -346,9 +346,56 @@ window.pomodoroLogic = {
         this.isActive = false;
         this.isPaused = false;
 
-        // If skipping focus, still count it
+    skip: function() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+        this.isActive = false;
+        this.isPaused = false;
+
+        // If skipping focus, record actual elapsed time studied so far and move to break
         if (this.mode === 'focus') {
-            this._phaseComplete();
+            const elapsedInPhase = Math.max(0, this.totalTime - this.timeLeft);
+            this.totalFocusSeconds = (this.accumulatedFocusBeforePhase || 0) + elapsedInPhase;
+            
+            // Record log if studied for at least 10s
+            if (elapsedInPhase >= 10) {
+                this.pomodorosCompleted++;
+                const logItem = {
+                    id: 'pomo_item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    completedAt: new Date().toISOString(),
+                    duracaoMin: Math.max(1, Math.round(elapsedInPhase / 60)),
+                    duracaoSeg: elapsedInPhase,
+                    categoria: this.context.categoria || (this.context.semana ? `Semana ${this.context.weekNum || ''}`.trim() : 'Livre'),
+                    semana: this.context.semana || null,
+                    weekNum: this.context.weekNum || null,
+                    materia: this.context.materia || (this.context.materias && this.context.materias.length === 1 ? this.context.materias[0] : (this.context.materias && this.context.materias.length > 1 ? this.context.materias.join(', ') : 'Geral')),
+                    materias: this.context.materias || []
+                };
+                this.currentSessionLogs.push(logItem);
+            }
+
+            if (this.pomodorosCompleted >= this.totalPomodoros) {
+                this.mode = 'idle';
+                this._updateTitle();
+                this._notifyStateChange();
+                if (this.onSessionComplete) this.onSessionComplete();
+                return;
+            }
+
+            // Advance to break
+            const usarLonga = this.config.usarPausaLonga !== false;
+            const isLonga = usarLonga && (this.pomodorosCompleted % this.config.pomodorosAtePausaLonga === 0);
+            this.mode = isLonga ? 'longBreak' : 'shortBreak';
+            this.totalTime = (isLonga ? this.config.pausaLonga : this.config.pausaCurta) * 60;
+            this.timeLeft = this.totalTime;
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
+            this.isActive = true;
+            this._updateTitle();
+            this._notifyStateChange();
+            this._startInterval();
+            this._persistActiveSession();
         } else {
             // Skipping break -> go to next focus
             this.currentPomodoro++;
@@ -387,7 +434,7 @@ window.pomodoroLogic = {
 
     // Save completed session to store
     saveSession: function(nota) {
-        if (!window.store || this.pomodorosCompleted === 0) return null;
+        if (!window.store || (this.totalFocusSeconds < 10 && this.pomodorosCompleted === 0)) return null;
 
         const defaultMateria = this.context.materia || (this.context.materias && this.context.materias.length === 1 ? this.context.materias[0] : (this.context.materias && this.context.materias.length > 1 ? this.context.materias.join(', ') : 'Geral'));
 
