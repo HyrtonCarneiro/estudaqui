@@ -65,13 +65,13 @@ window.simuladosController = {
                         ${perc}%
                     </div>
                     <div>
-                        <h4 class="font-bold text-gray-800 text-sm leading-tight">${s.nome}</h4>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${date}</p>
+                        <h4 class="font-bold text-gray-800 text-base leading-tight">${s.nome}</h4>
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${date}</p>
                     </div>
                 </div>
                 <div class="flex gap-2 relative z-10">
-                    <button onclick="window.simuladosController.handleEditar('${s.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95"><i class="ph-bold ph-pencil-simple"></i> <span class="text-[9px] font-black uppercase">Editar</span></button>
-                    <button onclick="window.simuladosController.handleRemover('${s.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95"><i class="ph-bold ph-trash"></i> <span class="text-[9px] font-black uppercase">Excluir</span></button>
+                    <button onclick="window.simuladosController.handleEditar('${s.id}')" class="flex items-center gap-1.5 px-3.5 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95 text-xs font-bold"><i class="ph-bold ph-pencil-simple text-sm"></i> <span class="uppercase">Editar</span></button>
+                    <button onclick="window.simuladosController.handleRemover('${s.id}')" class="flex items-center gap-1.5 px-3.5 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95 text-xs font-bold"><i class="ph-bold ph-trash text-sm"></i> <span class="uppercase">Excluir</span></button>
                 </div>
             `;
             this.listEl.appendChild(div);

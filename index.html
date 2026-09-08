@@ -45,17 +45,91 @@
     </script>
     
     <style>
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
-        .nav-active { background: #3b5df5 !important; color: white !important; box-shadow: 0 4px 12px rgba(59, 93, 245, 0.2); }
-        .page-transition { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        :root {
+            --ui-scale-multiplier: 1;
+        }
+
+        /* Fluid Root Typography: Adapts intelligently to screen resolution and viewport width */
+        html {
+            font-size: calc(clamp(15.5px, 0.9rem + 0.35vw, 19.5px) * var(--ui-scale-multiplier, 1));
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        @media (min-width: 1440px) {
+            html {
+                font-size: calc(clamp(17px, 0.95rem + 0.38vw, 20.5px) * var(--ui-scale-multiplier, 1));
+            }
+        }
+
+        @media (min-width: 1920px) {
+            html {
+                font-size: calc(clamp(18.5px, 1rem + 0.42vw, 22px) * var(--ui-scale-multiplier, 1));
+            }
+        }
+
+        @media (min-width: 2560px) {
+            html {
+                font-size: calc(clamp(20px, 1.1rem + 0.45vw, 24px) * var(--ui-scale-multiplier, 1));
+            }
+        }
+
+        /* Elevate illegible micro-fonts into readable, responsive rem-based typography */
+        .text-\[8px\], .text-\[9px\] {
+            font-size: 0.78rem !important;
+            line-height: 1.25rem !important;
+        }
+
+        .text-\[10px\] {
+            font-size: 0.84rem !important;
+            line-height: 1.3rem !important;
+        }
+
+        .text-\[11px\] {
+            font-size: 0.88rem !important;
+            line-height: 1.35rem !important;
+        }
+
+        .text-xs {
+            font-size: 0.9rem !important;
+            line-height: 1.4rem !important;
+        }
+
+        .text-sm {
+            font-size: 0.98rem !important;
+            line-height: 1.5rem !important;
+        }
+
+        /* Enhanced Text Contrast for secondary labels */
+        .text-gray-400 {
+            color: #64748b !important; /* Rich slate-gray with superior contrast ratio */
+        }
+
+        /* Ensure phosphor icons stay sharp, proportional and well-aligned */
+        i[class*="ph-"], i[class^="ph-"], i.ph {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+        }
+
+        /* Smooth form elements */
+        button, select, input {
+            font-family: inherit;
+        }
+
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.5); }
+        .nav-active { background: #3b5df5 !important; color: white !important; box-shadow: 0 4px 14px rgba(59, 93, 245, 0.3); }
+        .page-transition { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         #view-login.hidden, .page-section.hidden, .fixed.hidden { display: none !important; }
         
         /* Modal Scrollability Fixes */
@@ -68,6 +142,49 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
     </style>
+
+    <script>
+        // Immediate scale initialization to prevent visual flash
+        (function() {
+            try {
+                const saved = localStorage.getItem('user_display_scale') || 'normal';
+                let mult = 1;
+                if (saved === 'medium') mult = 1.1;
+                else if (saved === 'large') mult = 1.22;
+                document.documentElement.style.setProperty('--ui-scale-multiplier', mult.toString());
+            } catch (e) {}
+        })();
+
+        window.uiScaleHelper = {
+            init: function() {
+                const saved = localStorage.getItem('user_display_scale') || 'normal';
+                this.setScale(saved, false);
+            },
+            setScale: function(scale, save = true) {
+                let mult = 1;
+                if (scale === 'medium') mult = 1.1;
+                else if (scale === 'large') mult = 1.22;
+                else scale = 'normal';
+
+                document.documentElement.style.setProperty('--ui-scale-multiplier', mult.toString());
+                if (save) localStorage.setItem('user_display_scale', scale);
+
+                ['normal', 'medium', 'large'].forEach(s => {
+                    const btn = document.getElementById('btn-scale-' + s);
+                    if (btn) {
+                        if (s === scale) {
+                            btn.className = 'px-2.5 py-1 rounded-lg text-xs font-black bg-white text-primary-600 shadow-sm border border-gray-200 transition-all';
+                        } else {
+                            btn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all';
+                        }
+                    }
+                });
+            }
+        };
+        document.addEventListener('DOMContentLoaded', () => {
+            window.uiScaleHelper.init();
+        });
+    </script>
 
     <!-- Chart.js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -141,42 +258,51 @@
     <!-- Main App View -->
     <div id="view-app" class="hidden min-h-screen pb-20">
         <!-- Dashboard Navigation (Horizontal Glass) -->
-        <nav class="glass sticky top-0 z-[100] px-8 py-4 mb-8">
-            <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-200">
-                        <i class="ph-bold ph-graduation-cap text-white text-xl"></i>
+        <nav class="glass sticky top-0 z-[100] px-6 lg:px-8 py-3.5 mb-8 shadow-sm">
+            <div class="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1650px] mx-auto flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="w-10 h-10 lg:w-11 lg:h-11 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-200">
+                        <i class="ph-bold ph-graduation-cap text-white text-xl lg:text-2xl"></i>
                     </div>
                     <div>
-                        <span class="text-xl font-black text-gray-900 tracking-tighter">Concursos Hyrtinho</span>
+                        <span class="text-xl lg:text-2xl font-black text-gray-900 tracking-tighter">Concursos Hyrtinho</span>
                         <div class="h-0.5 w-full bg-primary-600 rounded-full mt-[-2px]"></div>
                     </div>
                 </div>
                 
-                <div class="flex flex-1 justify-center px-4">
-                    <div class="bg-gray-100/50 p-1.5 rounded-2xl gap-1 flex flex-wrap justify-center">
-                        <button onclick="window.appControllers.navigate('dashboard')" id="nav-dashboard" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-layout"></i> Dashboard</button>
-                        <button onclick="window.appControllers.navigate('editais')" id="nav-editais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-newspaper"></i> Editais</button>
-                        <button onclick="window.appControllers.navigate('cadastros')" id="nav-cadastros" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-database"></i> Cadastros</button>
-                        <button onclick="window.appControllers.navigate('cronograma')" id="nav-cronograma" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-calendar-check"></i> Cronograma</button>
-                        <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files"></i> Materiais</button>
-                        <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link"></i> Links</button>
-                        <button onclick="window.appControllers.navigate('pomodoro')" id="nav-pomodoro" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-timer"></i> Pomodoro</button>
-                        <button onclick="window.appControllers.navigate('downloads')" id="nav-downloads" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-download-simple"></i> Downloads</button>
-                        <button onclick="window.appControllers.navigate('anki')" id="nav-anki" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-cards"></i> Anki</button>
-                        <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check"></i> Gerenciamento</button>
+                <div class="flex flex-1 justify-center px-2 lg:px-4">
+                    <div class="bg-gray-100/60 p-1.5 rounded-2xl gap-1 flex flex-wrap justify-center items-center border border-gray-200/40">
+                        <button onclick="window.appControllers.navigate('dashboard')" id="nav-dashboard" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-layout text-base"></i> Dashboard</button>
+                        <button onclick="window.appControllers.navigate('editais')" id="nav-editais" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-newspaper text-base"></i> Editais</button>
+                        <button onclick="window.appControllers.navigate('cadastros')" id="nav-cadastros" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-database text-base"></i> Cadastros</button>
+                        <button onclick="window.appControllers.navigate('cronograma')" id="nav-cronograma" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-calendar-check text-base"></i> Cronograma</button>
+                        <button onclick="window.appControllers.navigate('materiais')" id="nav-materiais" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-files text-base"></i> Materiais</button>
+                        <button onclick="window.appControllers.navigate('links')" id="nav-links" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-link text-base"></i> Links</button>
+                        <button onclick="window.appControllers.navigate('pomodoro')" id="nav-pomodoro" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-timer text-base"></i> Pomodoro</button>
+                        <button onclick="window.appControllers.navigate('downloads')" id="nav-downloads" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph ph-download-simple text-base"></i> Downloads</button>
+                        <button onclick="window.appControllers.navigate('anki')" id="nav-anki" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-cards text-base"></i> Anki</button>
+                        <button onclick="window.appControllers.navigate('admin')" id="nav-admin" style="display: none;" class="px-4 lg:px-5 py-2.5 text-xs lg:text-sm font-bold text-gray-600 hover:text-primary-600 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider"><i class="ph-bold ph-shield-check text-base"></i> Gerenciamento</button>
                     </div>
                 </div>
 
-                <button id="btn-logout" class="group flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors">
-                    <span class="text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sair</span>
-                    <i class="ph ph-sign-out text-2xl"></i>
-                </button>
+                <div class="flex items-center gap-3 shrink-0">
+                    <!-- Visual Scale Switcher -->
+                    <div class="flex items-center gap-1 bg-gray-100/90 p-1 rounded-xl border border-gray-200/60" title="Ajuste do tamanho dos textos e tela">
+                        <button type="button" onclick="window.uiScaleHelper.setScale('normal')" id="btn-scale-normal" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all text-gray-600 hover:text-gray-900" title="Tamanho Padrão (Normal)">A</button>
+                        <button type="button" onclick="window.uiScaleHelper.setScale('medium')" id="btn-scale-medium" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all text-gray-600 hover:text-gray-900" title="Tamanho Médio (+10%)">A+</button>
+                        <button type="button" onclick="window.uiScaleHelper.setScale('large')" id="btn-scale-large" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all text-gray-600 hover:text-gray-900" title="Tamanho Grande (+22%)">A++</button>
+                    </div>
+
+                    <button id="btn-logout" class="group flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-xl hover:bg-red-50">
+                        <span class="text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sair</span>
+                        <i class="ph ph-sign-out text-2xl"></i>
+                    </button>
+                </div>
             </div>
         </nav>
 
         <!-- Pages Content -->
-        <main class="max-w-7xl mx-auto p-6">
+        <main class="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1650px] mx-auto p-6 md:p-8">
             
             <!-- Dashboard Page -->
             <section id="page-dashboard" class="page-section hidden page-transition">

@@ -428,15 +428,15 @@ window.cronogramaController = {
                     </button>
                 </td>
                 <td class="px-8 py-5 text-center">
-                    <span class="px-3 py-1.5 bg-gray-50 text-[10px] font-black text-gray-500 rounded-xl uppercase tracking-widest">${item.paginas || '--'} Pág.</span>
+                    <span class="px-3 py-1.5 bg-gray-50 text-xs font-black text-gray-600 rounded-xl uppercase tracking-wider">${item.paginas || '--'} Pág.</span>
                 </td>
                 <td class="px-8 py-5 text-right">
                     <div class="flex justify-end gap-2 relative z-10">
-                        <button onclick="window.cronogramaController.editar('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95" title="Editar Estudo">
-                            <i class="ph-bold ph-pencil-simple"></i> <span class="text-[9px] font-black uppercase">Editar</span>
+                        <button onclick="window.cronogramaController.editar('${item.id}')" class="flex items-center gap-1.5 px-3.5 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95 text-xs font-bold" title="Editar Estudo">
+                            <i class="ph-bold ph-pencil-simple text-sm"></i> <span class="uppercase">Editar</span>
                         </button>
-                        <button onclick="window.cronogramaController.removerItem('${item.id}')" class="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95" title="Remover">
-                            <i class="ph-bold ph-trash"></i> <span class="text-[9px] font-black uppercase">Excluir</span>
+                        <button onclick="window.cronogramaController.removerItem('${item.id}')" class="flex items-center gap-1.5 px-3.5 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95 text-xs font-bold" title="Remover">
+                            <i class="ph-bold ph-trash text-sm"></i> <span class="uppercase">Excluir</span>
                         </button>
                     </div>
                 </td>

@@ -336,6 +336,12 @@ window.store = {
     addPomodoroSessao: function(data) {
         const id = 'pomo_' + Date.now();
         const sessao = { id, ...data };
+        if (sessao.pomodorosLog && Array.isArray(sessao.pomodorosLog) && sessao.pomodorosLog.length > 0) {
+            const sumLogs = sessao.pomodorosLog.reduce((acc, l) => acc + (l.duracaoSeg || ((l.duracaoMin || 0) * 60) || 0), 0);
+            if (sumLogs > (sessao.tempoTotalFocoSeg || 0)) {
+                sessao.tempoTotalFocoSeg = sumLogs;
+            }
+        }
         this.state.pomodoroSessoes.push(sessao);
         this.save();
         return sessao;
@@ -574,6 +580,23 @@ window.store = {
                     const originalLength = this.state.pomodoroCategorias.length;
                     this.state.pomodoroCategorias = this.state.pomodoroCategorias.filter(c => !mockCats.includes(c));
                     if (this.state.pomodoroCategorias.length !== originalLength) {
+                        this.save(true);
+                    }
+                }
+
+                // Self-heal any pomodoro session where tempoTotalFocoSeg was slightly truncated
+                if (this.state.pomodoroSessoes && Array.isArray(this.state.pomodoroSessoes)) {
+                    let healedPomos = false;
+                    this.state.pomodoroSessoes.forEach(s => {
+                        if (s.pomodorosLog && Array.isArray(s.pomodorosLog) && s.pomodorosLog.length > 0) {
+                            const sumLogs = s.pomodorosLog.reduce((acc, l) => acc + (l.duracaoSeg || ((l.duracaoMin || 0) * 60) || 0), 0);
+                            if (sumLogs > (s.tempoTotalFocoSeg || 0)) {
+                                s.tempoTotalFocoSeg = sumLogs;
+                                healedPomos = true;
+                            }
+                        }
+                    });
+                    if (healedPomos) {
                         this.save(true);
                     }
                 }

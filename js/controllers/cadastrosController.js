@@ -169,18 +169,18 @@ window.cadastrosController = {
                     <div class="relative">
                         <div class="flex items-start justify-between mb-4">
                             <div>
-                                <p class="text-[9px] font-black text-primary-500 uppercase tracking-[0.2em] mb-1">${m.nome}</p>
-                                <h4 class="font-bold text-gray-800 leading-tight pr-8">${c.nome}</h4>
+                                <p class="text-xs font-black text-primary-600 uppercase tracking-wider mb-1">${m.nome}</p>
+                                <h4 class="font-bold text-gray-800 text-base leading-tight pr-8">${c.nome}</h4>
                             </div>
                         </div>
                         <div class="flex items-center justify-between mt-6">
-                            <span class="px-3 py-1.5 bg-gray-50 text-[10px] font-black text-gray-500 rounded-xl uppercase tracking-widest">${c.paginas} Pág.</span>
+                            <span class="px-3 py-1.5 bg-gray-50 text-xs font-black text-gray-600 rounded-xl uppercase tracking-wider">${c.paginas} Pág.</span>
                             <div class="flex gap-2 relative z-10">
-                                <button onclick="window.cadastrosController.abrirModalEditarConteudo('${c.id}')" class="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95" title="Editar Conteúdo">
-                                    <i class="ph-bold ph-pencil-simple-line"></i> <span class="text-[9px] font-black uppercase">Editar</span>
+                                <button onclick="window.cadastrosController.abrirModalEditarConteudo('${c.id}')" class="flex items-center gap-2 px-3.5 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95 text-xs font-bold" title="Editar Conteúdo">
+                                    <i class="ph-bold ph-pencil-simple-line text-sm"></i> <span class="uppercase">Editar</span>
                                 </button>
-                                <button onclick="window.cadastrosController.removerConteudo('${c.id}')" class="flex items-center gap-2 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95" title="Apagar">
-                                    <i class="ph-bold ph-trash-line"></i> <span class="text-[9px] font-black uppercase">Apagar</span>
+                                <button onclick="window.cadastrosController.removerConteudo('${c.id}')" class="flex items-center gap-2 px-3.5 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md active:scale-95 text-xs font-bold" title="Apagar">
+                                    <i class="ph-bold ph-trash-line text-sm"></i> <span class="uppercase">Apagar</span>
                                 </button>
                             </div>
                         </div>

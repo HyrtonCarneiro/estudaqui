@@ -596,12 +596,12 @@ window.pomodoroController = {
             const pct = Math.round((dayTotals[i] / maxDay) * 100);
             const isToday = i === todayDow;
             barsHtml += `
-                <div class="flex flex-col items-center gap-1.5 flex-1">
-                    <span class="text-[9px] font-black text-gray-400">${dayTotals[i] > 0 ? Math.round(dayTotals[i]/60) + 'm' : ''}</span>
-                    <div class="w-full bg-gray-100 rounded-xl overflow-hidden h-28 flex flex-col justify-end">
-                        <div class="w-full ${isToday ? 'bg-primary-600' : 'bg-primary-300'} rounded-xl transition-all duration-500" style="height: ${Math.max(pct, 4)}%"></div>
+                <div class="flex flex-col items-center gap-2 flex-1">
+                    <span class="text-xs font-bold text-gray-500 min-h-[1.25rem]">${dayTotals[i] > 0 ? Math.round(dayTotals[i]/60) + 'm' : ''}</span>
+                    <div class="w-full bg-gray-100 rounded-xl overflow-hidden h-32 flex flex-col justify-end p-0.5">
+                        <div class="w-full ${isToday ? 'bg-primary-600' : 'bg-primary-300'} rounded-lg transition-all duration-500" style="height: ${Math.max(pct, 5)}%"></div>
                     </div>
-                    <span class="text-[9px] font-black ${isToday ? 'text-primary-600' : 'text-gray-400'} uppercase">${dayLabels[i]}</span>
+                    <span class="text-xs font-black ${isToday ? 'text-primary-600' : 'text-gray-600'} uppercase tracking-wider">${dayLabels[i]}</span>
                 </div>
             `;
         }
@@ -817,14 +817,14 @@ window.pomodoroController = {
 
         // Build HTML
         let html = `
-            <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-premium p-8 mb-8">
+            <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-premium p-6 md:p-8 mb-8">
                 <!-- Filters Bar -->
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-100">
-                    <div class="flex flex-wrap items-center gap-3 flex-1">
+                    <div class="flex flex-wrap items-center gap-4 flex-1">
                         <!-- Período -->
                         <div>
-                            <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Período</label>
-                            <select onchange="window.pomodoroController.setHistoryFilter('period', this.value)" class="bg-gray-50 border border-gray-200 text-xs font-bold rounded-xl px-3 py-2 outline-none text-gray-700">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Período</label>
+                            <select onchange="window.pomodoroController.setHistoryFilter('period', this.value)" class="bg-gray-50 border border-gray-200 text-sm font-bold rounded-xl px-3.5 py-2.5 outline-none text-gray-700 hover:border-primary-300 transition-colors">
                                 <option value="todos" ${filterPeriod === 'todos' ? 'selected' : ''}>Todos os Períodos</option>
                                 <option value="hoje" ${filterPeriod === 'hoje' ? 'selected' : ''}>Hoje</option>
                                 <option value="semana" ${filterPeriod === 'semana' ? 'selected' : ''}>Esta Semana</option>
@@ -834,8 +834,8 @@ window.pomodoroController = {
 
                         <!-- Categoria -->
                         <div>
-                            <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Categoria</label>
-                            <select onchange="window.pomodoroController.setHistoryFilter('category', this.value)" class="bg-gray-50 border border-gray-200 text-xs font-bold rounded-xl px-3 py-2 outline-none text-gray-700">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Categoria</label>
+                            <select onchange="window.pomodoroController.setHistoryFilter('category', this.value)" class="bg-gray-50 border border-gray-200 text-sm font-bold rounded-xl px-3.5 py-2.5 outline-none text-gray-700 hover:border-primary-300 transition-colors">
                                 ${Array.from(allCats).map(cat => `
                                     <option value="${this._escapeHtml(cat)}" ${filterCat === cat ? 'selected' : ''}>
                                         ${cat === 'todas' ? 'Todas as Categorias' : this._escapeHtml(cat)}
@@ -846,8 +846,8 @@ window.pomodoroController = {
 
                         <!-- Matéria -->
                         <div>
-                            <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Matéria</label>
-                            <select onchange="window.pomodoroController.setHistoryFilter('materia', this.value)" class="bg-gray-50 border border-gray-200 text-xs font-bold rounded-xl px-3 py-2 outline-none text-gray-700">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Matéria</label>
+                            <select onchange="window.pomodoroController.setHistoryFilter('materia', this.value)" class="bg-gray-50 border border-gray-200 text-sm font-bold rounded-xl px-3.5 py-2.5 outline-none text-gray-700 hover:border-primary-300 transition-colors">
                                 ${Array.from(allMats).map(m => `
                                     <option value="${this._escapeHtml(m)}" ${filterMat === m ? 'selected' : ''}>
                                         ${m === 'todas' ? 'Todas as Matérias' : this._escapeHtml(m)}
@@ -857,7 +857,7 @@ window.pomodoroController = {
                         </div>
                     </div>
 
-                    <span class="text-xs font-black text-gray-400 uppercase tracking-widest self-end">
+                    <span class="text-xs font-black text-gray-500 uppercase tracking-wider self-end bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                         ${filtered.length} registro${filtered.length !== 1 ? 's' : ''}
                     </span>
                 </div>
@@ -865,27 +865,35 @@ window.pomodoroController = {
 
         if (filtered.length === 0) {
             html += `
-                <div class="p-8 text-center text-gray-400 text-xs italic">
+                <div class="p-8 text-center text-gray-500 text-sm italic">
                     Nenhum registro encontrado para os filtros selecionados.
                 </div>
             `;
         } else {
             Object.keys(groups).forEach(key => {
                 const items = groups[key];
+                items.forEach(s => {
+                    if (s.pomodorosLog && Array.isArray(s.pomodorosLog) && s.pomodorosLog.length > 0) {
+                        const sumLogs = s.pomodorosLog.reduce((sum, l) => sum + (l.duracaoSeg || ((l.duracaoMin || 0) * 60) || 0), 0);
+                        if (sumLogs > (s.tempoTotalFocoSeg || 0)) {
+                            s.tempoTotalFocoSeg = sumLogs;
+                        }
+                    }
+                });
                 const totalFoco = items.reduce((sum, s) => sum + (s.tempoTotalFocoSeg || 0), 0);
                 const totalPomos = items.reduce((sum, s) => sum + (s.pomodorosConcluidos || 0), 0);
                 const isWeek = key.startsWith('Semana');
 
                 html += `
                     <div class="mb-8 last:mb-0">
-                        <div class="flex items-center justify-between mb-4 bg-gray-50/70 p-3.5 rounded-2xl border border-gray-100">
-                            <h4 class="text-xs font-black text-gray-900 flex items-center gap-2 uppercase tracking-wider">
-                                <i class="ph-bold ${isWeek ? 'ph-calendar-check text-primary-600' : 'ph-folder-notch-open text-amber-600'} text-base"></i>
+                        <div class="flex items-center justify-between mb-4 bg-gray-50/80 p-4 rounded-2xl border border-gray-100">
+                            <h4 class="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+                                <i class="ph-bold ${isWeek ? 'ph-calendar-check text-primary-600' : 'ph-folder-notch-open text-amber-600'} text-lg"></i>
                                 ${this._escapeHtml(key)}
                             </h4>
-                            <div class="flex items-center gap-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                <span class="bg-white px-2.5 py-1 rounded-lg border border-gray-100">🍅 ${totalPomos} pomo${totalPomos !== 1 ? 's' : ''}</span>
-                                <span class="bg-white px-2.5 py-1 rounded-lg border border-gray-100">⏱️ ${window.pomodoroLogic ? window.pomodoroLogic.formatDuration(totalFoco) : ''}</span>
+                            <div class="flex items-center gap-3 text-xs font-black text-gray-600 uppercase tracking-wider">
+                                <span class="bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm flex items-center gap-1.5">🍅 ${totalPomos} pomo${totalPomos !== 1 ? 's' : ''}</span>
+                                <span class="bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm flex items-center gap-1.5">⏱️ ${window.pomodoroLogic ? window.pomodoroLogic.formatDuration(totalFoco) : ''}</span>
                             </div>
                         </div>
 
@@ -900,40 +908,40 @@ window.pomodoroController = {
                     html += `
                         <div class="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-sm transition-all group">
                             <div class="flex items-start justify-between gap-4">
-                                <div class="flex items-start gap-3 flex-1 min-w-0">
-                                    <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shrink-0 mt-0.5">
-                                        <i class="ph-bold ph-timer text-lg"></i>
+                                <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                                    <div class="w-11 h-11 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shrink-0 mt-0.5 shadow-sm">
+                                        <i class="ph-bold ph-timer text-xl"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                                            <span class="text-sm font-black text-gray-900">${s.pomodorosConcluidos}/${s.pomodorosAlvo} pomodoros</span>
-                                            <span class="text-xs font-black text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-md">
+                                        <div class="flex items-center gap-2.5 flex-wrap mb-1">
+                                            <span class="text-base font-black text-gray-900">${s.pomodorosConcluidos}/${s.pomodorosAlvo} pomodoros</span>
+                                            <span class="text-xs font-black text-primary-700 bg-primary-50 border border-primary-100 px-3 py-1 rounded-lg">
                                                 ${window.pomodoroLogic ? window.pomodoroLogic.formatDuration(s.tempoTotalFocoSeg || 0) : ''}
                                             </span>
                                             ${materiaStr ? `
-                                                <span class="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md truncate max-w-xs">
+                                                <span class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg truncate max-w-xs">
                                                     📚 ${this._escapeHtml(materiaStr)}
                                                 </span>
                                             ` : ''}
                                         </div>
 
-                                        <p class="text-xs text-gray-400 font-medium">${dateStr}</p>
+                                        <p class="text-xs text-gray-500 font-medium">${dateStr}</p>
                                         
                                         <!-- Note container with edit option -->
-                                        <div class="mt-2.5 flex items-start gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100 group/note">
-                                            <div class="flex-1 min-w-0 text-xs text-gray-700">
+                                        <div class="mt-3 flex items-start gap-2 bg-gray-50/80 p-3 rounded-xl border border-gray-100 group/note">
+                                            <div class="flex-1 min-w-0 text-sm text-gray-700">
                                                 ${s.nota ? `📝 <span id="note-text-${s.id}">${this._escapeHtml(s.nota)}</span>` : '<span class="text-gray-400 italic">Sem anotação. Clique no lápis para adicionar...</span>'}
                                             </div>
-                                            <button type="button" onclick="window.pomodoroController.editSessionNote('${s.id}')" class="text-gray-400 hover:text-primary-600 transition-colors p-1 rounded-lg hover:bg-white active:scale-95" title="Editar anotação">
-                                                <i class="ph-bold ph-pencil-simple text-sm"></i>
+                                            <button type="button" onclick="window.pomodoroController.editSessionNote('${s.id}')" class="text-gray-400 hover:text-primary-600 transition-colors p-1.5 rounded-lg hover:bg-white active:scale-95" title="Editar anotação">
+                                                <i class="ph-bold ph-pencil-simple text-base"></i>
                                             </button>
                                         </div>
 
                                         <!-- Individual pomodoro pills if available -->
                                         ${logs.length > 0 ? `
-                                            <div class="flex items-center gap-1.5 flex-wrap mt-2.5">
+                                            <div class="flex items-center gap-2 flex-wrap mt-3">
                                                 ${logs.map((log, idx) => `
-                                                    <span class="text-[9px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md" title="Concluído às ${this._formatDateTimeBR(log.completedAt)}">
+                                                    <span class="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1" title="Concluído às ${this._formatDateTimeBR(log.completedAt)}">
                                                         🍅 #${idx + 1} (${log.duracaoMin}m)
                                                     </span>
                                                 `).join('')}

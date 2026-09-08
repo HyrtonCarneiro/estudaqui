@@ -238,6 +238,10 @@ window.pomodoroLogic = {
         if (completedMode === 'focus') {
             this.pomodorosCompleted++;
 
+            // Snap total focus seconds to exact duration so sub-second intervals don't truncate full minutes
+            this.totalFocusSeconds = (this.accumulatedFocusBeforePhase || 0) + (this.config.duracaoFoco * 60);
+            this.accumulatedFocusBeforePhase = this.totalFocusSeconds;
+
             // Record individual pomodoro log with exact completion date/time
             const logItem = {
                 id: 'pomo_item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -270,6 +274,7 @@ window.pomodoroLogic = {
                 this.totalTime = this.config.pausaCurta * 60;
             }
             this.timeLeft = this.totalTime;
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
 
             if (this.config.autoStart) {
                 this.isPaused = false;
@@ -282,6 +287,8 @@ window.pomodoroLogic = {
             this.mode = 'focus';
             this.totalTime = this.config.duracaoFoco * 60;
             this.timeLeft = this.totalTime;
+            this.targetEndTime = Date.now() + (this.timeLeft * 1000);
+            this.accumulatedFocusBeforePhase = this.totalFocusSeconds;
 
             if (this.config.autoStart) {
                 this.isPaused = false;
@@ -346,18 +353,11 @@ window.pomodoroLogic = {
         this.isActive = false;
         this.isPaused = false;
 
-    skip: function() {
-        if (this.timer) {
-            clearInterval(this.timer);
-            this.timer = null;
-        }
-        this.isActive = false;
-        this.isPaused = false;
-
         // If skipping focus, record actual elapsed time studied so far and move to break
         if (this.mode === 'focus') {
             const elapsedInPhase = Math.max(0, this.totalTime - this.timeLeft);
             this.totalFocusSeconds = (this.accumulatedFocusBeforePhase || 0) + elapsedInPhase;
+            this.accumulatedFocusBeforePhase = this.totalFocusSeconds;
             
             // Record log if studied for at least 10s
             if (elapsedInPhase >= 10) {
@@ -436,6 +436,14 @@ window.pomodoroLogic = {
     saveSession: function(nota) {
         if (!window.store || (this.totalFocusSeconds < 10 && this.pomodorosCompleted === 0)) return null;
 
+        // Ensure tempoTotalFocoSeg accurately reflects sum of pomodoro logs if logs exist
+        const logsTotalSec = (this.currentSessionLogs && this.currentSessionLogs.length > 0)
+            ? this.currentSessionLogs.reduce((acc, item) => acc + (item.duracaoSeg || ((item.duracaoMin || 0) * 60) || 0), 0)
+            : this.totalFocusSeconds;
+
+        const finalTotalSeconds = Math.max(this.totalFocusSeconds, logsTotalSec);
+        this.totalFocusSeconds = finalTotalSeconds;
+
         const defaultMateria = this.context.materia || (this.context.materias && this.context.materias.length === 1 ? this.context.materias[0] : (this.context.materias && this.context.materias.length > 1 ? this.context.materias.join(', ') : 'Geral'));
 
         const sessao = window.store.addPomodoroSessao({
@@ -450,13 +458,13 @@ window.pomodoroLogic = {
             pomodorosConcluidos: this.pomodorosCompleted,
             duracaoFoco: this.config.duracaoFoco,
             duracaoPausa: this.config.pausaCurta,
-            tempoTotalFocoSeg: this.totalFocusSeconds,
+            tempoTotalFocoSeg: finalTotalSeconds,
             nota: nota || '',
             pomodorosLog: this.currentSessionLogs || []
         });
 
         // Also update total study hours in stats
-        const hours = this.totalFocusSeconds / 3600;
+        const hours = finalTotalSeconds / 3600;
         if (window.store.getState().estatisticas) {
             window.store.getState().estatisticas.totalHorasEstudo = 
                 (window.store.getState().estatisticas.totalHorasEstudo || 0) + hours;
@@ -473,9 +481,14 @@ window.pomodoroLogic = {
     },
 
     formatDuration: function(totalSeconds) {
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        if (h > 0) return `${h}h ${m}min`;
+        if (!totalSeconds || totalSeconds < 0) totalSeconds = 0;
+        // Round to nearest minute to avoid sub-minute clock jitter/truncation (e.g. 5998s -> 100min = 1h 40min)
+        const totalMinutes = Math.round(totalSeconds / 60);
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        if (h > 0) {
+            return m > 0 ? `${h}h ${m}min` : `${h}h`;
+        }
         return `${m}min`;
     },
 
